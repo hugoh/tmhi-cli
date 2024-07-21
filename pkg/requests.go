@@ -10,11 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func reboot(username, password, ip string, dryRun bool) {
-	loginData := login(username, password, ip)
-	if !loginData.Success {
-		log.Println("Cannot reboot without successful login flow")
-		return
+func Reboot(username, password, ip string, dryRun bool) error {
+	loginData, err := Login(username, password, ip)
+	if !loginData.Success || err != nil {
+		return fmt.Errorf("Cannot reboot without successful login flow: %v", err)
 	}
 	rebootRequest := map[string]interface{}{
 		"uri": fmt.Sprintf("http://%s/reboot_web_app.cgi", ip),
@@ -28,20 +27,21 @@ func reboot(username, password, ip string, dryRun bool) {
 	logrus.Debug(fmt.Sprintf("Reboot request: %+v", rebootRequest))
 	rebootMsg := "T-Mobile Internet Router reboot successfully requested"
 	if !dryRun {
-		httpPost(rebootRequest, func(rebootResp *http.Response) {
-			defer rebootResp.Body.Close()
-			var respData map[string]interface{}
-			json.NewDecoder(rebootResp.Body).Decode(&respData)
-			if rebootResp.StatusCode == http.StatusOK {
-				logrus.Debug(fmt.Sprintf("Reboot response: %+v", respData))
-				log.Println(rebootMsg)
-			} else {
-				log.Println(fmt.Sprintf("Reboot request failed: %+v", respData))
-			}
-		})
+		// httpPost(rebootRequest, func(rebootResp *http.Response) {
+		// 	defer rebootResp.Body.Close()
+		// 	var respData map[string]interface{}
+		// 	json.NewDecoder(rebootResp.Body).Decode(&respData)
+		// 	if rebootResp.StatusCode == http.StatusOK {
+		// 		logrus.Debug(fmt.Sprintf("Reboot response: %+v", respData))
+		// 		log.Println(rebootMsg)
+		// 	} else {
+		// 		log.Println(fmt.Sprintf("Reboot request failed: %+v", respData))
+		// 	}
+		// })
 	} else {
-		log.Println(fmt.Sprintf("[DRY-RUN] %s [/DRY-RUN]", rebootMsg))
+		logrus.Infof("[DRY-RUN] %s [/DRY-RUN]", rebootMsg)
 	}
+	return nil
 }
 
 func httpPost(request map[string]interface{}, handler func(resp *http.Response)) {
