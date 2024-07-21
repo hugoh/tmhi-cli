@@ -18,22 +18,11 @@ var (
 	cfgFile string
 )
 
-type Settings struct {
-	Username  string
-	Password  string
-	IP        string
-	Gateway   string
-	DryRun    bool
-	LogEnable bool
-}
-
-var settings = Settings{
-	Username:  "your_username",
-	Password:  "your_password",
-	IP:        "192.168.12.1",
-	Gateway:   pkg.RouterNokia,
-	DryRun:    false,
-	LogEnable: false,
+func getGateway() (pkg.GatewayI, error) {
+	conf, err := internal.ReadConf(cfgFile)
+	internal.LogSetup(debug)
+	internal.FatalIfError(err)
+	return pkg.NewGateway(conf.Gateway.Model, conf.Login.Username, conf.Login.Password, conf.Gateway.Ip, dryRun)
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -63,10 +52,9 @@ func Execute() {
 		Short: "Verify that the credentials can log the tool in",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			conf, err := internal.ReadConf(cfgFile)
-			internal.LogSetup(debug)
+			gateway, err := getGateway()
 			internal.FatalIfError(err)
-			_, loginErr := pkg.Login(conf.Login.Username, conf.Login.Password, conf.Gateway.Ip)
+			_, loginErr := gateway.Login()
 			internal.FatalIfError(loginErr)
 			logrus.Info("Successfully logged in")
 		},
@@ -77,10 +65,9 @@ func Execute() {
 		Short: "Reboot the router",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			conf, err := internal.ReadConf(cfgFile)
-			internal.LogSetup(debug)
+			gateway, err := getGateway()
 			internal.FatalIfError(err)
-			rebootErr := pkg.Reboot(conf.Login.Username, conf.Login.Password, conf.Gateway.Ip, dryRun)
+			rebootErr := gateway.Reboot()
 			internal.FatalIfError(rebootErr)
 		},
 	})
