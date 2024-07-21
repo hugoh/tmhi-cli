@@ -25,7 +25,7 @@ func ReadConf(cfgFile string) (*Configuration, error) {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		viper.SetConfigName(".thmi-cli")
+		viper.SetConfigName(".tmhi-cli")
 		viper.AddConfigPath("$HOME/")
 		viper.AddConfigPath(".")
 	}

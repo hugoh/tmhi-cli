@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hugoh/thmi-cli/internal"
+	"github.com/hugoh/tmhi-cli/internal"
 	"github.com/sirupsen/logrus"
 )
 

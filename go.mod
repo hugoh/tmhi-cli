@@ -1,4 +1,4 @@
-module github.com/hugoh/thmi-cli
+module github.com/hugoh/tmhi-cli
 
 go 1.22.5
 

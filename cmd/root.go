@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hugoh/thmi-cli/internal"
-	"github.com/hugoh/thmi-cli/pkg"
+	"github.com/hugoh/tmhi-cli/internal"
+	"github.com/hugoh/tmhi-cli/pkg"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +31,7 @@ func getGateway() (pkg.GatewayI, error) { //nolint:ireturn //FIXME:
 // rootCmd represents the base command when called without any subcommands
 func Execute() {
 	rootCmd := &cobra.Command{
-		Use:   "thmi-cli",
+		Use:   "tmhi-cli",
 		Short: "A brief description of your application",
 		Long: `A longer description that spans multiple lines and likely contains
     examples and usage of using your application. For example:
@@ -44,7 +44,7 @@ func Execute() {
 		// Run: func(cmd *cobra.Command, args []string) { },
 	}
 	rootCmd.PersistentFlags().
-		StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.thmi-cli.yaml)")
+		StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.tmhi-cli.yaml)")
 	rootCmd.PersistentFlags().
 		BoolVarP(&dryRun, "dry-run", "D", false, "don't perform any change to the gateway")
 	rootCmd.PersistentFlags().
