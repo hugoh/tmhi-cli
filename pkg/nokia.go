@@ -1,11 +1,8 @@
 package pkg
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,26 +14,27 @@ import (
 type NokiaGateway struct {
 	Username, Password, Ip string
 	DryRun                 bool
+	credentials            loginData
 }
 
-type LoginData struct {
-	Success   bool
-	SID       string
-	CSRFToken string
-}
-
-type NonceResp struct {
+type nonceResp struct {
 	Nonce     string `json:"nonce"`
 	Pubkey    string `json:"pubkey"`
 	RandomKey string `json:"randomKey"`
 }
 
-type LoginResp struct {
+type loginData struct {
+	Success   bool
+	SID       string
+	CSRFToken string
+}
+
+type loginResp struct {
 	Sid       string `json:"sid"`
 	CsrfToken string `json:"token"`
 }
 
-func getNonce(ip string) (*NonceResp, error) {
+func getNonce(ip string) (*nonceResp, error) {
 	loginNonce, loginNonceErr := http.Get(fmt.Sprintf("http://%s/login_web_app.cgi?nonce", ip))
 	if loginNonceErr != nil {
 		return nil, fmt.Errorf("Error getting nonce: %v", loginNonceErr)
@@ -46,7 +44,7 @@ func getNonce(ip string) (*NonceResp, error) {
 	if loginNonce.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Could not start authentication process: %s", loginNonce.Body)
 	}
-	var nonceResp NonceResp
+	var nonceResp nonceResp
 	jsonErr := json.NewDecoder(loginNonce.Body).Decode(&nonceResp)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("Error getting nonce: %v", jsonErr)
@@ -55,22 +53,19 @@ func getNonce(ip string) (*NonceResp, error) {
 	return &nonceResp, nil
 }
 
-func httpRequestSuccessful(resp *http.Response) bool {
-	return resp.StatusCode >= 200 && resp.StatusCode < 300
-}
-
-func getCredentials(username, password, ip string, nonceResp NonceResp) (*LoginResp, error) {
+func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginResp, error) {
 	passHashInput := strings.ToLower(password)
 	userPassHash := internal.Sha256Hash(username, passHashInput)
 	userPassNonceHash := internal.Sha256Url(userPassHash, nonceResp.Nonce)
 	loginRequestUrl := fmt.Sprintf("http://%s/login_web_app.cgi", ip)
-	loginRequestParams := url.Values{}
-	loginRequestParams.Add("userhash", internal.Sha256Url(username, nonceResp.Nonce))
-	loginRequestParams.Add("RandomKeyhash", internal.Sha256Url(nonceResp.RandomKey, nonceResp.Nonce))
-	loginRequestParams.Add("response", userPassNonceHash)
-	loginRequestParams.Add("nonce", internal.Base64urlEscape(nonceResp.Nonce))
-	loginRequestParams.Add("enckey", internal.Random16bytes())
-	loginRequestParams.Add("enciv", internal.Random16bytes())
+	loginRequestParams := url.Values{
+		"userhash":      {internal.Sha256Url(username, nonceResp.Nonce)},
+		"RandomKeyhash": {internal.Sha256Url(nonceResp.RandomKey, nonceResp.Nonce)},
+		"response":      {userPassNonceHash},
+		"nonce":         {internal.Base64urlEscape(nonceResp.Nonce)},
+		"enckey":        {internal.Random16bytes()},
+		"enciv":         {internal.Random16bytes()},
+	}
 	logrus.WithFields(logrus.Fields{
 		"url":    loginRequestUrl,
 		"params": loginRequestParams,
@@ -81,19 +76,12 @@ func getCredentials(username, password, ip string, nonceResp NonceResp) (*LoginR
 		return nil, fmt.Errorf("Could not authenticate: %v", loginErr)
 	}
 	defer login.Body.Close()
-	if !httpRequestSuccessful(login) {
-		body, err := io.ReadAll(login.Body)
-		if err != nil {
-			logrus.Errorf("Error reading HTTP body: %v", err)
-		}
-		logrus.WithFields(logrus.Fields{
-			"status": login.StatusCode,
-			"body":   string(body),
-		}).Error("error while making login request")
+	if !internal.HttpRequestSuccessful(login) {
+		logrus.WithFields(internal.LogHttpResponseFields(login)).Error("error while making login request")
 		return nil, fmt.Errorf("Could not authenticate: %s", login.Body)
 	}
 
-	var loginResp LoginResp
+	var loginResp loginResp
 	jsonErr := json.NewDecoder(login.Body).Decode(&loginResp)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("Error parsing login response: %v", jsonErr)
@@ -102,79 +90,66 @@ func getCredentials(username, password, ip string, nonceResp NonceResp) (*LoginR
 	return &loginResp, nil
 }
 
-func (n *NokiaGateway) Login() (LoginData, error) {
-	ret := LoginData{}
+func (n *NokiaGateway) Login() error {
 	nonceResp, nonceErr := getNonce(n.Ip)
 	if nonceErr != nil {
-		return ret, fmt.Errorf("Error getting nonce: %v", nonceErr)
+		return fmt.Errorf("Error getting nonce: %v", nonceErr)
 	}
 
 	loginResp, loginErr := getCredentials(n.Username, n.Password, n.Ip, *nonceResp)
 	if loginErr != nil {
-		return ret, fmt.Errorf("Could not authenticate: %v", loginErr)
+		return fmt.Errorf("Could not authenticate: %v", loginErr)
 	}
-	ret.SID = loginResp.Sid
-	ret.CSRFToken = loginResp.CsrfToken
-	ret.Success = true
-	logrus.Debugf("Authenticated: %v", ret)
-	return ret, nil
+	n.credentials.SID = loginResp.Sid
+	n.credentials.CSRFToken = loginResp.CsrfToken
+	n.credentials.Success = true
+	logrus.Debugf("Authenticated: %v", n.credentials)
+	return nil
 }
 
-func (n *NokiaGateway) Reboot() error {
-	loginData, err := n.Login()
-	if !loginData.Success || err != nil {
-		return fmt.Errorf("Cannot reboot without successful login flow: %v", err)
-	}
-	rebootRequest := map[string]interface{}{
-		"uri": fmt.Sprintf("http://%s/reboot_web_app.cgi", n.Ip),
-		"headers": map[string]string{
-			"Cookie": fmt.Sprintf("sid=%s", loginData.SID),
-		},
-		"body": map[string]string{
-			"csrf_token": loginData.CSRFToken,
-		},
-	}
-	logrus.Debug(fmt.Sprintf("Reboot request: %+v", rebootRequest))
-	rebootMsg := "T-Mobile Internet Router reboot successfully requested"
-	if !n.DryRun {
-		// httpPost(rebootRequest, func(rebootResp *http.Response) {
-		// 	defer rebootResp.Body.Close()
-		// 	var respData map[string]interface{}
-		// 	json.NewDecoder(rebootResp.Body).Decode(&respData)
-		// 	if rebootResp.StatusCode == http.StatusOK {
-		// 		logrus.Debug(fmt.Sprintf("Reboot response: %+v", respData))
-		// 		log.Println(rebootMsg)
-		// 	} else {
-		// 		log.Println(fmt.Sprintf("Reboot request failed: %+v", respData))
-		// 	}
-		// })
-	} else {
-		logrus.Infof("[DRY-RUN] %s [/DRY-RUN]", rebootMsg)
+func (n *NokiaGateway) ensureLoggedIn() error {
+	if !n.credentials.Success {
+		return n.Login()
 	}
 	return nil
 }
 
-func httpPost(request map[string]interface{}, handler func(resp *http.Response)) {
-	uri := request["uri"].(string)
-	body := request["body"].(map[string]string)
-	jsonData, err := json.Marshal(body)
+func (n *NokiaGateway) Reboot() error {
+	err := n.ensureLoggedIn()
 	if err != nil {
-		log.Println("Error marshalling request body:", err)
-		return
+		return fmt.Errorf("Cannot reboot without successful login flow: %v", err)
 	}
-	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonData))
+
+	rebootRequestUri := fmt.Sprintf("http://%s/reboot_web_app.cgi", n.Ip)
+	formData := url.Values{
+		"csrf_token": {n.credentials.CSRFToken},
+	}
+	req, err := http.NewRequest("POST", rebootRequestUri, strings.NewReader(formData.Encode()))
 	if err != nil {
-		log.Println("Error creating HTTP request:", err)
-		return
+		return fmt.Errorf("Error creating reboot request: %v", err)
 	}
-	for k, v := range request["headers"].(map[string]string) {
-		req.Header.Set(k, v)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	cookie := fmt.Sprintf("sid=%s", n.credentials.SID)
+	req.Header.Set("Cookie", cookie)
+
+	logrus.WithFields(logrus.Fields{
+		"url":    rebootRequestUri,
+		"cookie": cookie,
+		"params": formData,
+	}).Debug("reboot request prepared")
+
+	if !n.DryRun {
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("Error sending reboot request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		logrus.WithFields(internal.LogHttpResponseFields(resp)).Debug("reboot response")
+		if internal.HttpRequestSuccessful(resp) {
+			logrus.Info("successfully requested gateway rebooted")
+		}
 	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println("Error making HTTP request:", err)
-		return
-	}
-	handler(resp)
+	return nil
 }

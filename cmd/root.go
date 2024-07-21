@@ -54,7 +54,7 @@ func Execute() {
 		Run: func(cmd *cobra.Command, args []string) {
 			gateway, err := getGateway()
 			internal.FatalIfError(err)
-			_, loginErr := gateway.Login()
+			loginErr := gateway.Login()
 			internal.FatalIfError(loginErr)
 			logrus.Info("Successfully logged in")
 		},

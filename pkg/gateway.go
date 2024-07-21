@@ -7,7 +7,7 @@ import (
 )
 
 type GatewayI interface {
-	Login() (LoginData, error)
+	Login() error
 	Reboot() error
 }
 
