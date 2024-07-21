@@ -22,11 +22,11 @@ func FatalIfError(err error) {
 	os.Exit(1)
 }
 
-func HttpRequestSuccessful(resp *http.Response) bool {
+func HTTPRequestSuccessful(resp *http.Response) bool {
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
 
-func LogHttpResponseFields(resp *http.Response) logrus.Fields {
+func LogHTTPResponseFields(resp *http.Response) logrus.Fields {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Errorf("Error reading HTTP body: %v", err)
@@ -53,7 +53,8 @@ func Sha256Url(val1, val2 string) string {
 }
 
 func Random16bytes() string {
-	b := make([]byte, 16)
+	const length = 16
+	b := make([]byte, length)
 	_, err := rand.Read(b)
 	if err != nil {
 		return ""

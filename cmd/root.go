@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/hugoh/thmi-cli/internal"
@@ -13,16 +14,21 @@ import (
 )
 
 var (
-	debug   bool
-	dryRun  bool
-	cfgFile string
+	debug   bool   //nolint:gochecknoglobals
+	dryRun  bool   //nolint:gochecknoglobals
+	cfgFile string //nolint:gochecknoglobals
 )
 
-func getGateway() (pkg.GatewayI, error) {
+func getGateway() (pkg.GatewayI, error) { //nolint:ireturn //FIXME:
 	conf, err := internal.ReadConf(cfgFile)
 	internal.LogSetup(debug)
 	internal.FatalIfError(err)
-	return pkg.NewGateway(conf.Gateway.Model, conf.Login.Username, conf.Login.Password, conf.Gateway.Ip, dryRun)
+	gateway, errNew := pkg.NewGateway(conf.Gateway.Model, conf.Login.Username,
+		conf.Login.Password, conf.Gateway.IP, dryRun)
+	if errNew != nil {
+		return gateway, fmt.Errorf("error getting gateway interface: %w", errNew)
+	}
+	return gateway, nil
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -51,7 +57,7 @@ func Execute() {
 		Use:   "login",
 		Short: "Verify that the credentials can log the tool in",
 		Args:  cobra.ExactArgs(0),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			gateway, err := getGateway()
 			internal.FatalIfError(err)
 			loginErr := gateway.Login()
@@ -64,7 +70,7 @@ func Execute() {
 		Use:   "reboot",
 		Short: "Reboot the router",
 		Args:  cobra.ExactArgs(0),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			gateway, err := getGateway()
 			internal.FatalIfError(err)
 			rebootErr := gateway.Reboot()

@@ -11,12 +11,12 @@ import (
 
 type Configuration struct {
 	Login struct {
-		Username string `yaml:"username" validate:"required"`
-		Password string `yaml:"password" validate:"required"`
+		Username string `validate:"required" yaml:"username"`
+		Password string `validate:"required" yaml:"password"`
 	} `yaml:"login"`
 	Gateway struct {
-		Model string `yaml:"model" validate:"required,oneof=NOK5G21"`
-		Ip    string `yaml:"ip" validate:"ipv4"`
+		Model string `validate:"required,oneof=NOK5G21" yaml:"model"`
+		IP    string `validate:"ipv4"                   yaml:"ip"`
 	} `yaml:"gateway"`
 }
 
