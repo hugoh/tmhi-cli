@@ -1,0 +1,17 @@
+---
+issues:
+  exclude-files: _test\.go
+linters:
+  enable-all: true
+  disable:
+    - depguard
+    - err113
+    - exhaustruct
+    - godot
+    - godox
+    - nlreturn
+    - varnamelen
+    - wsl
+linters-settings:
+  errcheck:
+    check-blank: true

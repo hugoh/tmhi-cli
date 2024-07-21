@@ -1,0 +1,6 @@
+login:
+  username: admin
+  password: s3cret
+gateway:
+  model: NOK5G21
+  ip: 192.168.12.1
