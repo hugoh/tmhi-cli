@@ -1,9 +1,6 @@
 package internal
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -20,7 +17,14 @@ type Configuration struct {
 	} `yaml:"gateway"`
 }
 
-func ReadConf(cfgFile string) (*Configuration, error) {
+func configFatal(msg string, err error) {
+	logrus.WithFields(logrus.Fields{
+		"file": viper.ConfigFileUsed(),
+		"err":  err,
+	}).Fatal(msg)
+}
+
+func ReadConf(cfgFile string) *Configuration {
 	viper.SetConfigType("yaml")
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
@@ -32,23 +36,18 @@ func ReadConf(cfgFile string) (*Configuration, error) {
 
 	logrus.WithField("file", viper.ConfigFileUsed()).Debug("[Config] File")
 	if err := viper.ReadInConfig(); err != nil {
-		var notFoundError *viper.ConfigFileNotFoundError
-		if errors.As(err, &notFoundError) {
-			return nil, fmt.Errorf("fatal error config file not found: %w", err)
-		}
-		return nil, fmt.Errorf("fatal error config file: %w", err)
+		configFatal("Could not read config", err)
 	}
-
 	var conf Configuration
 	if err := viper.Unmarshal(&conf); err != nil {
-		logrus.Fatalf("unable to unmarshall the config %v", err)
+		configFatal("Unable to parse the config", err)
 	}
 	validate := validator.New()
 	if err := validate.Struct(&conf); err != nil {
-		logrus.Fatalf("Missing required attributes %v\n", err)
+		configFatal("Missing required attributes", err)
 	}
 
-	return &conf, nil
+	return &conf
 }
 
 func LogSetup(debugFlag bool) {
