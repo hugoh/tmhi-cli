@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/hugoh/tmhi-cli/internal"
@@ -16,16 +15,15 @@ var (
 	cfgFile string //nolint:gochecknoglobals
 )
 
-func getGateway() (pkg.GatewayI, error) { //nolint:ireturn //FIXME:
-	conf, err := internal.ReadConf(cfgFile)
+func getGateway() pkg.GatewayI { //nolint:ireturn //FIXME:
+	conf := internal.ReadConf(cfgFile)
 	internal.LogSetup(debug)
-	internal.FatalIfError(err)
-	gateway, errNew := pkg.NewGateway(conf.Gateway.Model, conf.Login.Username,
+	gateway, err := pkg.NewGateway(conf.Gateway.Model, conf.Login.Username,
 		conf.Login.Password, conf.Gateway.IP, dryRun)
-	if errNew != nil {
-		return gateway, fmt.Errorf("error getting gateway interface: %w", errNew)
+	if err != nil {
+		logrus.Fatal("Error getting gateway interface")
 	}
-	return gateway, nil
+	return gateway
 }
 
 func Execute(version string) {
@@ -46,10 +44,10 @@ func Execute(version string) {
 		Short: "Verify that the credentials can log the tool in",
 		Args:  cobra.ExactArgs(0),
 		Run: func(_ *cobra.Command, _ []string) {
-			gateway, err := getGateway()
-			internal.FatalIfError(err)
-			loginErr := gateway.Login()
-			internal.FatalIfError(loginErr)
+			gateway := getGateway()
+			if err := gateway.Login(); err != nil {
+				logrus.Fatal("Could not log in")
+			}
 			logrus.Info("Successfully logged in")
 		},
 	})
@@ -59,10 +57,10 @@ func Execute(version string) {
 		Short: "Reboot the router",
 		Args:  cobra.ExactArgs(0),
 		Run: func(_ *cobra.Command, _ []string) {
-			gateway, err := getGateway()
-			internal.FatalIfError(err)
-			rebootErr := gateway.Reboot()
-			internal.FatalIfError(rebootErr)
+			gateway := getGateway()
+			if err := gateway.Reboot(); err != nil {
+				logrus.Fatal("Could not reboot gateway")
+			}
 		},
 	})
 

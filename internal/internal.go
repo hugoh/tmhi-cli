@@ -7,20 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 )
-
-// Fatal logs the error to the standard output and exits with status 1.
-func FatalIfError(err error) {
-	if err == nil {
-		return
-	}
-	logrus.Fatal(err)
-	os.Exit(1)
-}
 
 func HTTPRequestSuccessful(resp *http.Response) bool {
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
