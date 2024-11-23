@@ -10,7 +10,7 @@ tasks:
 
   build:
     summary: Build application
-    cmd: go build -o dist/tmhi-cli .
+    cmd: go build -o dist/tmhicli .
 
   clean:
     summary: Clean the project
@@ -41,7 +41,7 @@ tasks:
   depup:
     summary: Upgrades dependencies
     cmds:
-      - go get -d -u -t ./...
+      - go get -u -t ./...
       - task tidy
 
   lint:
