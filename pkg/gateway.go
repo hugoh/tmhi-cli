@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -9,6 +10,12 @@ import (
 type GatewayI interface {
 	Login() error
 	Reboot() error
+}
+
+var ErrGatewayUnknown = errors.New("unsupported gateway")
+
+func GatewayUnknownError(gateway string) error {
+	return fmt.Errorf("%w: %s", ErrGatewayUnknown, gateway)
 }
 
 func NewGateway(gateway, username, password, ip string, dryRun bool) (GatewayI, error) { //nolint:ireturn //FIXME:
@@ -22,6 +29,6 @@ func NewGateway(gateway, username, password, ip string, dryRun bool) (GatewayI, 
 		}, nil
 	default:
 		logrus.WithField("gateway", gateway).Error("unsupported gateway")
-		return nil, fmt.Errorf("unsupported gateway: %s", gateway)
+		return nil, GatewayUnknownError(gateway)
 	}
 }

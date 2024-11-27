@@ -46,9 +46,9 @@ func Execute(version string) {
 		Run: func(_ *cobra.Command, _ []string) {
 			gateway := getGateway()
 			if err := gateway.Login(); err != nil {
-				logrus.Fatal("Could not log in")
+				logrus.WithError(err).Fatal("could not log in")
 			}
-			logrus.Info("Successfully logged in")
+			logrus.Info("successfully logged in")
 		},
 	})
 
@@ -59,7 +59,7 @@ func Execute(version string) {
 		Run: func(_ *cobra.Command, _ []string) {
 			gateway := getGateway()
 			if err := gateway.Reboot(); err != nil {
-				logrus.Fatal("Could not reboot gateway")
+				logrus.WithError(err).Fatal("Could not reboot gateway")
 			}
 		},
 	})
