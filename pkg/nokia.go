@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -34,6 +35,12 @@ type loginResp struct {
 	CsrfToken string `json:"token"`
 }
 
+var ErrAuthenticationProcessStart = errors.New("could not start authentication process")
+
+func AuthenticationProcessStartError(details string) error {
+	return fmt.Errorf("%w: %s", ErrAuthenticationProcessStart, details)
+}
+
 func getNonce(ip string) (*nonceResp, error) {
 	reqURL := fmt.Sprintf("http://%s/login_web_app.cgi?nonce", ip)
 	loginNonce, loginNonceErr := http.Get(reqURL) /* #nosec G107 */ //nolint:gosec,noctx,nolintlint //FIXME:
@@ -43,15 +50,21 @@ func getNonce(ip string) (*nonceResp, error) {
 	defer loginNonce.Body.Close()
 
 	if loginNonce.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not start authentication process: %s", loginNonce.Body)
+		return nil, AuthenticationProcessStartError(GetBody(loginNonce))
 	}
 	var nonceResp nonceResp
 	jsonErr := json.NewDecoder(loginNonce.Body).Decode(&nonceResp)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("error getting nonce: %w", jsonErr)
 	}
-	logrus.Debugf("Got nonce: %s", nonceResp.Nonce)
+	logrus.WithField("nonce", nonceResp.Nonce).Debug("Got nonce")
 	return &nonceResp, nil
+}
+
+var ErrAuthentication = errors.New("could not authenticate")
+
+func AuthenticationError(details string) error {
+	return fmt.Errorf("%w: %s", ErrAuthentication, details)
 }
 
 func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginResp, error) {
@@ -73,13 +86,13 @@ func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginR
 	}).Info("sending login request")
 	login, loginErr := http.PostForm(reqURL, reqParams) /* #nosec G107 */ //nolint:gosec,noctx,nolintlint //FIXME:
 	if loginErr != nil {
-		logrus.WithField("err", loginErr).Error("error while making login request")
-		return nil, fmt.Errorf("could not authenticate: %w", loginErr)
+		logrus.WithError(loginErr).Error("error while making login request")
+		return nil, AuthenticationError(loginErr.Error())
 	}
 	defer login.Body.Close()
 	if !internal.HTTPRequestSuccessful(login) {
 		logrus.WithFields(internal.LogHTTPResponseFields(login)).Error("error while making login request")
-		return nil, fmt.Errorf("could not authenticate: %s", login.Body)
+		return nil, AuthenticationError(GetBody(login))
 	}
 
 	var loginResp loginResp
@@ -99,12 +112,12 @@ func (n *NokiaGateway) Login() error {
 
 	loginResp, loginErr := getCredentials(n.Username, n.Password, n.IP, *nonceResp)
 	if loginErr != nil {
-		return fmt.Errorf("could not authenticate: %w", loginErr)
+		return fmt.Errorf("login failed: %w", loginErr)
 	}
 	n.credentials.SID = loginResp.Sid
 	n.credentials.CSRFToken = loginResp.CsrfToken
 	n.credentials.Success = true
-	logrus.Debugf("Authenticated: %v", n.credentials)
+	logrus.WithField("credentials", n.credentials).Debug("uthenticated")
 	return nil
 }
 

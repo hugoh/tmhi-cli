@@ -19,7 +19,7 @@ func HTTPRequestSuccessful(resp *http.Response) bool {
 func LogHTTPResponseFields(resp *http.Response) logrus.Fields {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logrus.Errorf("Error reading HTTP body: %v", err)
+		logrus.WithError(err).Error("error reading HTTP body")
 	}
 	return logrus.Fields{
 		"status": resp.StatusCode,
