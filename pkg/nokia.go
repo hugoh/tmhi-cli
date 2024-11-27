@@ -31,6 +31,8 @@ type loginData struct {
 }
 
 type loginResp struct {
+	Success   int    `json:"success"`
+	Reason    int    `json:"reason"`
 	Sid       string `json:"sid"`
 	CsrfToken string `json:"token"`
 }
@@ -67,6 +69,10 @@ func AuthenticationError(details string) error {
 	return fmt.Errorf("%w: %s", ErrAuthentication, details)
 }
 
+func (l *loginResp) success() bool {
+	return l.Sid != "" && l.CsrfToken != ""
+}
+
 func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginResp, error) {
 	passHashInput := strings.ToLower(password)
 	userPassHash := internal.Sha256Hash(username, passHashInput)
@@ -100,8 +106,14 @@ func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginR
 	if jsonErr != nil {
 		return nil, fmt.Errorf("error parsing login response: %w", jsonErr)
 	}
-	logrus.Debugf("Got login response: %s", loginResp)
-	return &loginResp, nil
+	logrus.WithField("response", loginResp).Debug("got login response")
+	var err error
+	if loginResp.success() {
+		err = nil
+	} else {
+		err = AuthenticationError("no valid credentials returned")
+	}
+	return &loginResp, err
 }
 
 func (n *NokiaGateway) Login() error {
