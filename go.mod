@@ -2,7 +2,10 @@ module github.com/hugoh/tmhi-cli
 
 go 1.23.3
 
-require github.com/sirupsen/logrus v1.9.3
+require (
+	github.com/alecthomas/kong v1.5.0
+	github.com/sirupsen/logrus v1.9.3
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -33,8 +36,6 @@ require (
 
 require (
 	github.com/go-playground/validator/v10 v10.23.0
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
