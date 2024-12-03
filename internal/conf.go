@@ -2,8 +2,14 @@ package internal
 
 import (
 	"github.com/go-playground/validator/v10"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+)
+
+const (
+	DefaultConfig string = ".tmhi-cli.yaml"
 )
 
 type Configuration struct {
@@ -17,34 +23,28 @@ type Configuration struct {
 	} `yaml:"gateway"`
 }
 
-func configFatal(msg string, err error) {
-	logrus.WithFields(logrus.Fields{
-		"file": viper.ConfigFileUsed(),
-		"err":  err,
-	}).Fatal(msg)
+func configFatal(msg string, cfgFile string, err error) {
+	logrus.WithField("file", cfgFile).WithError(err).Fatal(msg)
 }
 
 func ReadConf(cfgFile string) *Configuration {
-	viper.SetConfigType("yaml")
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		viper.SetConfigName(".tmhi-cli")
-		viper.AddConfigPath("$HOME/")
-		viper.AddConfigPath(".")
+	k := koanf.New(".")
+
+	if cfgFile == "" {
+		cfgFile = DefaultConfig
+	}
+	if err := k.Load(file.Provider(cfgFile), yaml.Parser()); err != nil {
+		configFatal("Could not read config", cfgFile, err)
+	}
+	logrus.WithField("file", cfgFile).Debug("[Config] config file used")
+	var conf Configuration
+	if err := k.UnmarshalWithConf("", &conf, koanf.UnmarshalConf{}); err != nil {
+		configFatal("Unable to parse the config", cfgFile, err)
 	}
 
-	logrus.WithField("file", viper.ConfigFileUsed()).Debug("[Config] File")
-	if err := viper.ReadInConfig(); err != nil {
-		configFatal("Could not read config", err)
-	}
-	var conf Configuration
-	if err := viper.Unmarshal(&conf); err != nil {
-		configFatal("Unable to parse the config", err)
-	}
 	validate := validator.New()
 	if err := validate.Struct(&conf); err != nil {
-		configFatal("Missing required attributes", err)
+		configFatal("Missing required attributes", cfgFile, err)
 	}
 
 	return &conf
