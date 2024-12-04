@@ -65,7 +65,7 @@ func getNonce(ip string) (*nonceResp, error) {
 	if jsonErr != nil {
 		return nil, fmt.Errorf("error getting nonce: %w", jsonErr)
 	}
-	logrus.WithField("nonce", nonceResp.Nonce).Debug("Got nonce")
+	logrus.WithField("nonce", nonceResp.Nonce).Debug("got nonce")
 	return &nonceResp, nil
 }
 

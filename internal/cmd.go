@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/hugoh/tmhi-cli/pkg"
@@ -62,7 +61,7 @@ func Reboot(cCtx *cli.Context) error {
 	gateway := getGateway(cCtx)
 	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
 	if err != nil {
-		logrus.WithError(err).Fatal("Could not reboot gateway")
+		logrus.WithError(err).Fatal("could not reboot gateway")
 	}
 	return fmt.Errorf("reboot failed: %w", err)
 }
@@ -141,6 +140,6 @@ func Cmd(version string) { //nolint:funlen
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logrus.WithError(err).Fatal()
 	}
 }
