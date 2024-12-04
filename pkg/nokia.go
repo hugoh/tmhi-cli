@@ -13,7 +13,6 @@ import (
 
 type NokiaGateway struct {
 	Username, Password, IP string
-	DryRun                 bool
 	credentials            loginData
 }
 
@@ -37,6 +36,14 @@ type loginResp struct {
 }
 
 var ErrAuthenticationProcessStart = errors.New("could not start authentication process")
+
+func NewNokiaGateway(username, password, ip string) *NokiaGateway {
+	return &NokiaGateway{
+		Username: username,
+		Password: password,
+		IP:       ip,
+	}
+}
 
 func AuthenticationProcessStartError(details string) error {
 	return fmt.Errorf("%w: %s", ErrAuthenticationProcessStart, details)
@@ -115,7 +122,7 @@ func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginR
 	return &loginResp, err
 }
 
-func (n *NokiaGateway) Login() error {
+func (n NokiaGateway) Login() error {
 	nonceResp, nonceErr := getNonce(n.IP)
 	if nonceErr != nil {
 		return fmt.Errorf("error getting nonce: %w", nonceErr)
@@ -132,14 +139,14 @@ func (n *NokiaGateway) Login() error {
 	return nil
 }
 
-func (n *NokiaGateway) ensureLoggedIn() error {
+func (n NokiaGateway) ensureLoggedIn() error {
 	if !n.credentials.Success {
 		return n.Login()
 	}
 	return nil
 }
 
-func (n *NokiaGateway) Reboot() error {
+func (n NokiaGateway) Reboot(dryRun bool) error {
 	err := n.ensureLoggedIn()
 	if err != nil {
 		return fmt.Errorf("cannot reboot without successful login flow: %w", err)
@@ -163,7 +170,7 @@ func (n *NokiaGateway) Reboot() error {
 		"params": formData,
 	}).Debug("reboot request prepared")
 
-	if !n.DryRun {
+	if !dryRun {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {

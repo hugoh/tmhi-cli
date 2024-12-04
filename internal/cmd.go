@@ -11,19 +11,53 @@ import (
 	"github.com/urfave/cli/v2/altsrc"
 )
 
-func getGateway(cCtx *cli.Context) pkg.GatewayI { //nolint:ireturn //FIXME:
-	LogSetup(cCtx.Bool("debug"))
-	gateway, err := pkg.NewGateway(cCtx.String("gateway.model"), cCtx.String("login.username"),
-		cCtx.String("login.password"), cCtx.String("gateway.ip"), cCtx.Bool("dry-run"))
-	if err != nil {
-		logrus.Fatal("Error getting gateway interface")
+const (
+	NOK5G21 string = "NOK5G21"
+)
+
+const (
+	ConfigDryRun   string = "dry-run"
+	ConfigConfig   string = "config"
+	ConfigDebug    string = "debug"
+	ConfigLogin    string = "login."
+	ConfigUsername string = ConfigLogin + "username"
+	ConfigPassword string = ConfigLogin + "password"
+	ConfigGateway  string = "gateway."
+	ConfigModel    string = ConfigGateway + "model"
+	ConfigIP       string = ConfigGateway + "ip"
+)
+
+type Gateway struct {
+	Gateway pkg.GatewayI
+	DryRun  bool
+}
+
+func LogSetup(debugFlag bool) {
+	if debugFlag {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+}
+
+func getGateway(cCtx *cli.Context) *Gateway {
+	LogSetup(cCtx.Bool(ConfigDebug))
+	model := cCtx.String(ConfigModel)
+	gateway := &Gateway{
+		DryRun: cCtx.Bool(ConfigDryRun),
+	}
+	switch model {
+	case "NOK5G21":
+		gateway.Gateway = pkg.NewNokiaGateway(cCtx.String(ConfigUsername), cCtx.String(ConfigPassword),
+			cCtx.String(ConfigIP))
+	default:
+		logrus.WithField("gateway", model).Fatal("unsupported gateway")
 	}
 	return gateway
 }
 
 func Login(cCtx *cli.Context) error {
 	gateway := getGateway(cCtx)
-	err := gateway.Login()
+	g := gateway.Gateway
+	err := g.Login()
 	if err != nil {
 		logrus.WithError(err).Fatal("could not log in")
 	} else {
@@ -34,7 +68,8 @@ func Login(cCtx *cli.Context) error {
 
 func Reboot(cCtx *cli.Context) error {
 	gateway := getGateway(cCtx)
-	err := gateway.Reboot()
+	g := gateway.Gateway
+	err := g.Reboot(gateway.DryRun)
 	if err != nil {
 		logrus.WithError(err).Fatal("Could not reboot gateway")
 	}
@@ -45,42 +80,42 @@ func Cmd(version string) { //nolint:funlen
 	// FIXME: altsrc and Required don't play well: https://github.com/urfave/cli/issues/1725
 	flags := []cli.Flag{
 		&cli.PathFlag{
-			Name:      "config",
+			Name:      ConfigConfig,
 			Aliases:   []string{"c"},
 			Usage:     "use the specified YAML configuration file",
 			TakesFile: true,
 		},
 		&cli.BoolFlag{
-			Name:    "debug",
+			Name:    ConfigDebug,
 			Aliases: []string{"d"},
 			Value:   false,
 			Usage:   "display debugging output in the console",
 		},
 		&cli.BoolFlag{
-			Name:    "dry-run",
+			Name:    ConfigDryRun,
 			Aliases: []string{"D"},
 			Value:   false,
 			Usage:   "do not perform any change to the gateway",
 		},
 		altsrc.NewStringFlag(&cli.StringFlag{
-			Name: "gateway.model",
+			Name: ConfigModel,
 			// Required: true,
-			Usage: "gateway model",
+			Usage: "gateway model: options: " + NOK5G21,
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "gateway.ip",
+			Name:  ConfigIP,
 			Value: "192.168.12.1",
 			// Required: true,
 			Usage: "gateway IP",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  "login.username",
+			Name:  ConfigUsername,
 			Value: "admin",
 			// Required: true,
 			Usage: "admin username",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
-			Name: "login.password",
+			Name: ConfigPassword,
 			// Required: true,
 			Usage: "admin password",
 		}),
@@ -100,13 +135,14 @@ func Cmd(version string) { //nolint:funlen
 
 	app := &cli.App{
 		Name:     "tmhi-cli",
+		Usage:    "Utility to interact with T-Mobile Home Internet gateway",
 		Version:  version,
 		Flags:    flags,
 		Commands: commands,
 		Before: altsrc.InitInputSourceWithContext(flags,
 			func(context *cli.Context) (altsrc.InputSourceContext, error) {
-				if context.IsSet("config") {
-					filePath := context.String("config")
+				if context.IsSet(ConfigConfig) {
+					filePath := context.String(ConfigConfig)
 					return altsrc.NewYamlSourceFromFile(filePath)
 				}
 				return &altsrc.MapInputSource{}, nil
