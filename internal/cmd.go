@@ -73,7 +73,7 @@ func Cmd(version string) { //nolint:funlen
 		&cli.PathFlag{
 			Name:      ConfigConfig,
 			Aliases:   []string{"c"},
-			Usage:     "use the specified YAML configuration file",
+			Usage:     "use the specified TOML configuration file",
 			TakesFile: true,
 		},
 		&cli.BoolFlag{
@@ -134,7 +134,7 @@ func Cmd(version string) { //nolint:funlen
 			func(context *cli.Context) (altsrc.InputSourceContext, error) {
 				if context.IsSet(ConfigConfig) {
 					filePath := context.String(ConfigConfig)
-					return altsrc.NewYamlSourceFromFile(filePath)
+					return altsrc.NewTomlSourceFromFile(filePath)
 				}
 				return &altsrc.MapInputSource{}, nil
 			}),
