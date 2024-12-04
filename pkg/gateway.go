@@ -19,7 +19,7 @@ func GatewayUnknownError(gateway string) error {
 }
 
 // FIXME:
-func NewGateway(gateway, username, password, ip string, dryRun bool) (GatewayI, error) { //nolint:ireturn
+func NewGateway(gateway, username, password, ip string, dryRun bool) (GatewayI, error) { //nolint:ireturn,nolintlint
 	switch gateway {
 	case "NOK5G21":
 		return &NokiaGateway{
