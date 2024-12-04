@@ -27,26 +27,19 @@ const (
 	ConfigIP       string = ConfigGateway + "ip"
 )
 
-type Gateway struct {
-	Gateway pkg.GatewayI
-	DryRun  bool
-}
-
 func LogSetup(debugFlag bool) {
 	if debugFlag {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 }
 
-func getGateway(cCtx *cli.Context) *Gateway {
+func getGateway(cCtx *cli.Context) pkg.GatewayI { //nolint:ireturn
 	LogSetup(cCtx.Bool(ConfigDebug))
 	model := cCtx.String(ConfigModel)
-	gateway := &Gateway{
-		DryRun: cCtx.Bool(ConfigDryRun),
-	}
+	var gateway pkg.GatewayI
 	switch model {
 	case "NOK5G21":
-		gateway.Gateway = pkg.NewNokiaGateway(cCtx.String(ConfigUsername), cCtx.String(ConfigPassword),
+		gateway = pkg.NewNokiaGateway(cCtx.String(ConfigUsername), cCtx.String(ConfigPassword),
 			cCtx.String(ConfigIP))
 	default:
 		logrus.WithField("gateway", model).Fatal("unsupported gateway")
@@ -56,20 +49,18 @@ func getGateway(cCtx *cli.Context) *Gateway {
 
 func Login(cCtx *cli.Context) error {
 	gateway := getGateway(cCtx)
-	g := gateway.Gateway
-	err := g.Login()
+	err := gateway.Login()
 	if err != nil {
 		logrus.WithError(err).Fatal("could not log in")
 	} else {
 		logrus.Info("successfully logged in")
 	}
-	return fmt.Errorf("login failed: %w", err)
+	return nil
 }
 
 func Reboot(cCtx *cli.Context) error {
 	gateway := getGateway(cCtx)
-	g := gateway.Gateway
-	err := g.Reboot(gateway.DryRun)
+	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
 	if err != nil {
 		logrus.WithError(err).Fatal("Could not reboot gateway")
 	}

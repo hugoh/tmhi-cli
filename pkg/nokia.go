@@ -135,7 +135,7 @@ func (n NokiaGateway) Login() error {
 	n.credentials.SID = loginResp.Sid
 	n.credentials.CSRFToken = loginResp.CsrfToken
 	n.credentials.Success = true
-	logrus.WithField("credentials", n.credentials).Debug("uthenticated")
+	logrus.WithField("credentials", n.credentials).Debug("authenticated")
 	return nil
 }
 
