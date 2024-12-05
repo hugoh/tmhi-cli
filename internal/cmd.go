@@ -61,9 +61,10 @@ func Reboot(cCtx *cli.Context) error {
 	gateway := getGateway(cCtx)
 	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
 	if err != nil {
-		logrus.WithError(err).Fatal("could not reboot gateway")
+		logrus.WithError(err).Error("could not reboot gateway")
+		return fmt.Errorf("could not reboot gateway: %w", err)
 	}
-	return fmt.Errorf("reboot failed: %w", err)
+	return nil
 }
 
 func Cmd(version string) { //nolint:funlen
