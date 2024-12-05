@@ -4,7 +4,7 @@ import (
 	"github.com/hugoh/tmhi-cli/internal"
 )
 
-const version = "dev"
+var version = "dev"
 
 func main() {
 	internal.Cmd(version)
