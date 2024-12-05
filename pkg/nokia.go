@@ -122,7 +122,7 @@ func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginR
 	return &loginResp, err
 }
 
-func (n NokiaGateway) Login() error {
+func (n *NokiaGateway) Login() error {
 	nonceResp, nonceErr := getNonce(n.IP)
 	if nonceErr != nil {
 		return fmt.Errorf("error getting nonce: %w", nonceErr)
@@ -139,14 +139,16 @@ func (n NokiaGateway) Login() error {
 	return nil
 }
 
-func (n NokiaGateway) ensureLoggedIn() error {
+func (n *NokiaGateway) ensureLoggedIn() error {
 	if !n.credentials.Success {
 		return n.Login()
 	}
 	return nil
 }
 
-func (n NokiaGateway) Reboot(dryRun bool) error {
+var ErrRebootFailed = errors.New("reboot failed")
+
+func (n *NokiaGateway) Reboot(dryRun bool) error {
 	err := n.ensureLoggedIn()
 	if err != nil {
 		return fmt.Errorf("cannot reboot without successful login flow: %w", err)
@@ -179,9 +181,11 @@ func (n NokiaGateway) Reboot(dryRun bool) error {
 		defer resp.Body.Close()
 
 		logrus.WithFields(LogHTTPResponseFields(resp)).Debug("reboot response")
-		if HTTPRequestSuccessful(resp) {
-			logrus.Info("successfully requested gateway rebooted")
+		if !HTTPRequestSuccessful(resp) {
+			logrus.WithFields(LogHTTPResponseFields(resp)).Error("reboot failed")
+			return ErrRebootFailed
 		}
 	}
+	logrus.Info("successfully requested gateway rebooted")
 	return nil
 }
