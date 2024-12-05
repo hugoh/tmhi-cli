@@ -8,13 +8,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hugoh/tmhi-cli/internal"
 	"github.com/sirupsen/logrus"
 )
 
 type NokiaGateway struct {
 	Username, Password, IP string
-	DryRun                 bool
 	credentials            loginData
 }
 
@@ -39,6 +37,14 @@ type loginResp struct {
 
 var ErrAuthenticationProcessStart = errors.New("could not start authentication process")
 
+func NewNokiaGateway(username, password, ip string) *NokiaGateway {
+	return &NokiaGateway{
+		Username: username,
+		Password: password,
+		IP:       ip,
+	}
+}
+
 func AuthenticationProcessStartError(details string) error {
 	return fmt.Errorf("%w: %s", ErrAuthenticationProcessStart, details)
 }
@@ -59,7 +65,7 @@ func getNonce(ip string) (*nonceResp, error) {
 	if jsonErr != nil {
 		return nil, fmt.Errorf("error getting nonce: %w", jsonErr)
 	}
-	logrus.WithField("nonce", nonceResp.Nonce).Debug("Got nonce")
+	logrus.WithField("nonce", nonceResp.Nonce).Debug("got nonce")
 	return &nonceResp, nil
 }
 
@@ -75,16 +81,16 @@ func (l *loginResp) success() bool {
 
 func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginResp, error) {
 	passHashInput := strings.ToLower(password)
-	userPassHash := internal.Sha256Hash(username, passHashInput)
-	userPassNonceHash := internal.Sha256Url(userPassHash, nonceResp.Nonce)
+	userPassHash := Sha256Hash(username, passHashInput)
+	userPassNonceHash := Sha256Url(userPassHash, nonceResp.Nonce)
 	reqURL := fmt.Sprintf("http://%s/login_web_app.cgi", ip)
 	reqParams := url.Values{
-		"userhash":      {internal.Sha256Url(username, nonceResp.Nonce)},
-		"RandomKeyhash": {internal.Sha256Url(nonceResp.RandomKey, nonceResp.Nonce)},
+		"userhash":      {Sha256Url(username, nonceResp.Nonce)},
+		"RandomKeyhash": {Sha256Url(nonceResp.RandomKey, nonceResp.Nonce)},
 		"response":      {userPassNonceHash},
-		"nonce":         {internal.Base64urlEscape(nonceResp.Nonce)},
-		"enckey":        {internal.Random16bytes()},
-		"enciv":         {internal.Random16bytes()},
+		"nonce":         {Base64urlEscape(nonceResp.Nonce)},
+		"enckey":        {Random16bytes()},
+		"enciv":         {Random16bytes()},
 	}
 	logrus.WithFields(logrus.Fields{
 		"url":    reqURL,
@@ -96,8 +102,8 @@ func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginR
 		return nil, AuthenticationError(loginErr.Error())
 	}
 	defer login.Body.Close()
-	if !internal.HTTPRequestSuccessful(login) {
-		logrus.WithFields(internal.LogHTTPResponseFields(login)).Error("error while making login request")
+	if !HTTPRequestSuccessful(login) {
+		logrus.WithFields(LogHTTPResponseFields(login)).Error("error while making login request")
 		return nil, AuthenticationError(GetBody(login))
 	}
 
@@ -116,7 +122,7 @@ func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginR
 	return &loginResp, err
 }
 
-func (n *NokiaGateway) Login() error {
+func (n NokiaGateway) Login() error {
 	nonceResp, nonceErr := getNonce(n.IP)
 	if nonceErr != nil {
 		return fmt.Errorf("error getting nonce: %w", nonceErr)
@@ -129,18 +135,18 @@ func (n *NokiaGateway) Login() error {
 	n.credentials.SID = loginResp.Sid
 	n.credentials.CSRFToken = loginResp.CsrfToken
 	n.credentials.Success = true
-	logrus.WithField("credentials", n.credentials).Debug("uthenticated")
+	logrus.WithField("credentials", n.credentials).Debug("authenticated")
 	return nil
 }
 
-func (n *NokiaGateway) ensureLoggedIn() error {
+func (n NokiaGateway) ensureLoggedIn() error {
 	if !n.credentials.Success {
 		return n.Login()
 	}
 	return nil
 }
 
-func (n *NokiaGateway) Reboot() error {
+func (n NokiaGateway) Reboot(dryRun bool) error {
 	err := n.ensureLoggedIn()
 	if err != nil {
 		return fmt.Errorf("cannot reboot without successful login flow: %w", err)
@@ -164,7 +170,7 @@ func (n *NokiaGateway) Reboot() error {
 		"params": formData,
 	}).Debug("reboot request prepared")
 
-	if !n.DryRun {
+	if !dryRun {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -172,8 +178,8 @@ func (n *NokiaGateway) Reboot() error {
 		}
 		defer resp.Body.Close()
 
-		logrus.WithFields(internal.LogHTTPResponseFields(resp)).Debug("reboot response")
-		if internal.HTTPRequestSuccessful(resp) {
+		logrus.WithFields(LogHTTPResponseFields(resp)).Debug("reboot response")
+		if HTTPRequestSuccessful(resp) {
 			logrus.Info("successfully requested gateway rebooted")
 		}
 	}
