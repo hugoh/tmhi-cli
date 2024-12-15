@@ -89,12 +89,6 @@ tasks:
 
   lint:
     summary: Lint code
-    cmds:
-      - task: minify
-      - task: runalllinters
-
-  runalllinters:
-    summary: Run all linters
     deps:
       - task: runlinter
         vars:
