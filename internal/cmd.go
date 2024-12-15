@@ -32,17 +32,8 @@ func LogSetup(debugFlag bool) {
 }
 
 func Login(cCtx *cli.Context) error {
-	model := cCtx.String(ConfigModel)
-	username := cCtx.String(ConfigUsername)
-	password := cCtx.String(ConfigPassword)
-	ip := cCtx.String(ConfigIP)
-	debug := cCtx.Bool(ConfigDebug)
-	var err error
-	gateway, err := getGateway(model, username, password, ip, debug)
-	if err != nil {
-		logrus.WithError(err).Fatal("unsupported gateway")
-	}
-	err = gateway.Login()
+	gateway := getGatewayFromCtx(cCtx)
+	err := gateway.Login()
 	if err != nil {
 		logrus.WithError(err).Fatal("could not log in")
 	} else {
@@ -52,17 +43,8 @@ func Login(cCtx *cli.Context) error {
 }
 
 func Reboot(cCtx *cli.Context) error {
-	model := cCtx.String(ConfigModel)
-	username := cCtx.String(ConfigUsername)
-	password := cCtx.String(ConfigPassword)
-	ip := cCtx.String(ConfigIP)
-	debug := cCtx.Bool(ConfigDebug)
-	var err error
-	gateway, err := getGateway(model, username, password, ip, debug)
-	if err != nil {
-		logrus.WithError(err).Fatal("unsupported gateway")
-	}
-	err = gateway.Reboot(cCtx.Bool(ConfigDryRun))
+	gateway := getGatewayFromCtx(cCtx)
+	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
 	if err != nil {
 		logrus.WithError(err).Error("could not reboot gateway")
 		return fmt.Errorf("could not reboot gateway: %w", err)
