@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hugoh/tmhi-cli/pkg"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -32,23 +31,18 @@ func LogSetup(debugFlag bool) {
 	}
 }
 
-func getGateway(cCtx *cli.Context) pkg.GatewayI { //nolint:ireturn
-	LogSetup(cCtx.Bool(ConfigDebug))
-	model := cCtx.String(ConfigModel)
-	var gateway pkg.GatewayI
-	switch model {
-	case "NOK5G21":
-		gateway = pkg.NewNokiaGateway(cCtx.String(ConfigUsername), cCtx.String(ConfigPassword),
-			cCtx.String(ConfigIP))
-	default:
-		logrus.WithField("gateway", model).Fatal("unsupported gateway")
-	}
-	return gateway
-}
-
 func Login(cCtx *cli.Context) error {
-	gateway := getGateway(cCtx)
-	err := gateway.Login()
+	model := cCtx.String(ConfigModel)
+	username := cCtx.String(ConfigUsername)
+	password := cCtx.String(ConfigPassword)
+	ip := cCtx.String(ConfigIP)
+	debug := cCtx.Bool(ConfigDebug)
+	var err error
+	gateway, err := getGateway(model, username, password, ip, debug)
+	if err != nil {
+		logrus.WithError(err).Fatal("unsupported gateway")
+	}
+	err = gateway.Login()
 	if err != nil {
 		logrus.WithError(err).Fatal("could not log in")
 	} else {
@@ -58,8 +52,17 @@ func Login(cCtx *cli.Context) error {
 }
 
 func Reboot(cCtx *cli.Context) error {
-	gateway := getGateway(cCtx)
-	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
+	model := cCtx.String(ConfigModel)
+	username := cCtx.String(ConfigUsername)
+	password := cCtx.String(ConfigPassword)
+	ip := cCtx.String(ConfigIP)
+	debug := cCtx.Bool(ConfigDebug)
+	var err error
+	gateway, err := getGateway(model, username, password, ip, debug)
+	if err != nil {
+		logrus.WithError(err).Fatal("unsupported gateway")
+	}
+	err = gateway.Reboot(cCtx.Bool(ConfigDryRun))
 	if err != nil {
 		logrus.WithError(err).Error("could not reboot gateway")
 		return fmt.Errorf("could not reboot gateway: %w", err)
