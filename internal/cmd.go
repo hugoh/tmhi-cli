@@ -32,7 +32,7 @@ func LogSetup(debugFlag bool) {
 }
 
 func Login(cCtx *cli.Context) error {
-	gateway := getGatewayFromCtx(cCtx)
+	gateway := getGatewayFromCtxOrFail(cCtx)
 	err := gateway.Login()
 	if err != nil {
 		logrus.WithError(err).Fatal("could not log in")
@@ -43,7 +43,7 @@ func Login(cCtx *cli.Context) error {
 }
 
 func Reboot(cCtx *cli.Context) error {
-	gateway := getGatewayFromCtx(cCtx)
+	gateway := getGatewayFromCtxOrFail(cCtx)
 	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
 	if err != nil {
 		logrus.WithError(err).Error("could not reboot gateway")
