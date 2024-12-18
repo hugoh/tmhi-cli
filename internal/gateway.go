@@ -24,7 +24,7 @@ func getGateway(model, username, password, ip string, debug bool) (pkg.GatewayI,
 	return gateway, nil
 }
 
-func getGatewayFromCtx(cCtx *cli.Context) pkg.GatewayI { //nolint:ireturn
+func getGatewayFromCtxOrFail(cCtx *cli.Context) pkg.GatewayI { //nolint:ireturn
 	gateway, err := getGateway(cCtx.String(ConfigModel),
 		cCtx.String(ConfigUsername),
 		cCtx.String(ConfigPassword),
@@ -32,6 +32,7 @@ func getGatewayFromCtx(cCtx *cli.Context) pkg.GatewayI { //nolint:ireturn
 		cCtx.Bool(ConfigDebug))
 	if err != nil {
 		logrus.WithError(err).Fatal("unsupported gateway")
+		// NOTREACHED
 	}
 	return gateway
 }
