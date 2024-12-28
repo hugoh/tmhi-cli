@@ -9,7 +9,7 @@ vars:
   # renovate: datasource=go depName=github.com/daixiang0/gci
   GCI_VERSION: 0.13.5
   # renovate: datasource=go depName=mvdan.cc/gofumpt
-  GOFUMPT_VERSION: 0.6.0
+  GOFUMPT_VERSION: 0.7.0
   # renovate: datasource=go depName=honnef.co/go/tools
   STATICCHECK_VERSION: 0.5.1
   # renovate: datasource=go depName=github.com/securego/gosec/v2
