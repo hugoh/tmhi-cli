@@ -83,7 +83,7 @@ tasks:
     summary: Run specific linter
     requires:
       vars: [RUN]
-    cmd: "go {{.RUN}} ./..."
+    cmd: go {{.RUN}} ./...
 
   test:
     summary: Run tests
