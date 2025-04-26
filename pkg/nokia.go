@@ -139,13 +139,6 @@ func (n *NokiaGateway) Login() error {
 	return nil
 }
 
-func (n *NokiaGateway) ensureLoggedIn() error {
-	if !n.credentials.Success {
-		return n.Login()
-	}
-	return nil
-}
-
 var ErrRebootFailed = errors.New("reboot failed")
 
 func (n *NokiaGateway) Reboot(dryRun bool) error {
@@ -187,5 +180,12 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 		}
 	}
 	logrus.Info("successfully requested gateway rebooted")
+	return nil
+}
+
+func (n *NokiaGateway) ensureLoggedIn() error {
+	if !n.credentials.Success {
+		return n.Login()
+	}
 	return nil
 }

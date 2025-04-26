@@ -43,7 +43,7 @@ func Base64urlEscape(b64 string) string {
 
 func Sha256Hash(val1, val2 string) string {
 	h := sha256.New()
-	h.Write([]byte(fmt.Sprintf("%s:%s", val1, val2)))
+	h.Write(fmt.Appendf(nil, "%s:%s", val1, val2))
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
