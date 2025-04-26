@@ -1,12 +1,15 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/hugoh/tmhi-cli/pkg"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-	"github.com/urfave/cli/v2/altsrc"
+	altsrc "github.com/urfave/cli-altsrc/v3"
+	toml "github.com/urfave/cli-altsrc/v3/toml"
+	"github.com/urfave/cli/v3"
 )
 
 const (
@@ -31,7 +34,20 @@ func LogSetup(debugFlag bool) {
 	}
 }
 
-func Login(cCtx *cli.Context) error {
+func getGatewayFromCtxOrFail(cCtx *cli.Command) pkg.GatewayI { //nolint:ireturn
+	gateway, err := getGateway(cCtx.String(ConfigModel),
+		cCtx.String(ConfigUsername),
+		cCtx.String(ConfigPassword),
+		cCtx.String(ConfigIP),
+		cCtx.Bool(ConfigDebug))
+	if err != nil {
+		logrus.WithError(err).Fatal("unsupported gateway")
+		// NOTREACHED
+	}
+	return gateway
+}
+
+func Login(_ context.Context, cCtx *cli.Command) error {
 	gateway := getGatewayFromCtxOrFail(cCtx)
 	err := gateway.Login()
 	if err != nil {
@@ -42,7 +58,7 @@ func Login(cCtx *cli.Context) error {
 	return nil
 }
 
-func Reboot(cCtx *cli.Context) error {
+func Reboot(_ context.Context, cCtx *cli.Command) error {
 	gateway := getGatewayFromCtxOrFail(cCtx)
 	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
 	if err != nil {
@@ -53,13 +69,16 @@ func Reboot(cCtx *cli.Context) error {
 }
 
 func Cmd(version string) { //nolint:funlen
-	// FIXME: altsrc and Required don't play well: https://github.com/urfave/cli/issues/1725
+	var configFile string
+	configSource := altsrc.NewStringPtrSourcer(&configFile)
+
 	flags := []cli.Flag{
-		&cli.PathFlag{
-			Name:      ConfigConfig,
-			Aliases:   []string{"c"},
-			Usage:     "use the specified TOML configuration file",
-			TakesFile: true,
+		&cli.StringFlag{
+			Name:        ConfigConfig,
+			Aliases:     []string{"c"},
+			Usage:       "use the specified TOML configuration file",
+			Destination: &configFile,
+			TakesFile:   true,
 		},
 		&cli.BoolFlag{
 			Name:    ConfigDebug,
@@ -73,28 +92,30 @@ func Cmd(version string) { //nolint:funlen
 			Value:   false,
 			Usage:   "do not perform any change to the gateway",
 		},
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name: ConfigModel,
-			// Required: true,
-			Usage: "gateway model: options: " + NOK5G21,
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  ConfigIP,
-			Value: "192.168.12.1",
-			// Required: true,
-			Usage: "gateway IP",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name:  ConfigUsername,
-			Value: "admin",
-			// Required: true,
-			Usage: "admin username",
-		}),
-		altsrc.NewStringFlag(&cli.StringFlag{
-			Name: ConfigPassword,
-			// Required: true,
-			Usage: "admin password",
-		}),
+		&cli.StringFlag{
+			Name:     ConfigModel,
+			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigModel, configSource)),
+			Required: true,
+			Usage:    "gateway model: options: " + NOK5G21,
+		},
+		&cli.StringFlag{
+			Name:    ConfigIP,
+			Sources: cli.NewValueSourceChain(toml.TOML(ConfigIP, configSource)),
+			Value:   "192.168.12.1",
+			Usage:   "gateway IP",
+		},
+		&cli.StringFlag{
+			Name:    ConfigUsername,
+			Sources: cli.NewValueSourceChain(toml.TOML(ConfigUsername, configSource)),
+			Value:   "admin",
+			Usage:   "admin username",
+		},
+		&cli.StringFlag{
+			Name:     ConfigPassword,
+			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigPassword, configSource)),
+			Required: true,
+			Usage:    "admin password",
+		},
 	}
 	commands := []*cli.Command{
 		{
@@ -109,23 +130,15 @@ func Cmd(version string) { //nolint:funlen
 		},
 	}
 
-	app := &cli.App{
+	app := &cli.Command{
 		Name:     "tmhi-cli",
 		Usage:    "Utility to interact with T-Mobile Home Internet gateway",
 		Version:  version,
 		Flags:    flags,
 		Commands: commands,
-		Before: altsrc.InitInputSourceWithContext(flags,
-			func(context *cli.Context) (altsrc.InputSourceContext, error) {
-				if context.IsSet(ConfigConfig) {
-					filePath := context.String(ConfigConfig)
-					return altsrc.NewTomlSourceFromFile(filePath)
-				}
-				return &altsrc.MapInputSource{}, nil
-			}),
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		logrus.WithError(err).Fatal()
 	}
 }
