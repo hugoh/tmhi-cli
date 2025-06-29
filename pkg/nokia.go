@@ -35,7 +35,7 @@ type nokiaLoginResp struct {
 	CsrfToken string `json:"token"`
 }
 
-var NokiaErrAuthenticationProcessStart = errors.New("could not start authentication process")
+var ErrNokiaAuthenticationProcessStart = errors.New("could not start authentication process")
 
 func NewNokiaGateway(username, password, ip string) *NokiaGateway {
 	return &NokiaGateway{
@@ -46,7 +46,7 @@ func NewNokiaGateway(username, password, ip string) *NokiaGateway {
 }
 
 func AuthenticationProcessStartError(details string) error {
-	return fmt.Errorf("%w: %s", NokiaErrAuthenticationProcessStart, details)
+	return fmt.Errorf("%w: %s", ErrNokiaAuthenticationProcessStart, details)
 }
 
 func getNonce(ip string) (*nonceResp, error) {

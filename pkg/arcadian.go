@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -57,7 +58,7 @@ func (a *ArcadianGateway) Login() error {
 		"url":    reqURL,
 		"params": bodyMap,
 	}).Info("sending login request")
-	req, err := http.NewRequest("POST", reqURL, bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, reqURL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create login request: %w", err)
 	}
@@ -70,8 +71,11 @@ func (a *ArcadianGateway) Login() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("unexpected status %d and failed to read body: %w", resp.StatusCode, err)
+		}
+		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body)) //nolint:err113
 	}
 
 	// Parse response
@@ -90,10 +94,6 @@ func (a *ArcadianGateway) Login() error {
 	return nil
 }
 
-func (a *ArcadianGateway) addRequestCredentials(req *http.Request) {
-	req.Header.Set("Authorization", "Bearer "+a.credentials.Token)
-}
-
 func (a *ArcadianGateway) Reboot(dryRun bool) error {
 	err := a.ensureLoggedIn()
 	if err != nil {
@@ -101,7 +101,7 @@ func (a *ArcadianGateway) Reboot(dryRun bool) error {
 	}
 
 	rebootRequestURL := "http://" + a.IP + "/TMI/v1/gateway/reset?set=reboot"
-	req, err := http.NewRequest(http.MethodPost, rebootRequestURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, rebootRequestURL, nil)
 	if err != nil {
 		return fmt.Errorf("error creating reboot request: %w", err)
 	}
@@ -126,6 +126,10 @@ func (a *ArcadianGateway) Reboot(dryRun bool) error {
 	}
 	logrus.Info("successfully requested gateway rebooted")
 	return nil
+}
+
+func (a *ArcadianGateway) addRequestCredentials(req *http.Request) {
+	req.Header.Set("Authorization", "Bearer "+a.credentials.Token)
 }
 
 func (a *ArcadianGateway) ensureLoggedIn() error {
