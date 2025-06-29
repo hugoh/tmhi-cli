@@ -7,7 +7,7 @@ import (
 )
 
 func Test_LoginSuccess(t *testing.T) {
-	success := &loginResp{
+	success := &nokiaLoginResp{
 		Success:   0,
 		Reason:    0,
 		Sid:       "foo",
@@ -17,7 +17,7 @@ func Test_LoginSuccess(t *testing.T) {
 }
 
 func Test_LoginFailure(t *testing.T) {
-	fail := &loginResp{
+	fail := &nokiaLoginResp{
 		Success: 0,
 		Reason:  600,
 	}

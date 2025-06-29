@@ -13,7 +13,7 @@ import (
 
 type NokiaGateway struct {
 	Username, Password, IP string
-	credentials            loginData
+	credentials            nokiaLoginData
 }
 
 type nonceResp struct {
@@ -22,20 +22,20 @@ type nonceResp struct {
 	RandomKey string `json:"randomKey"`
 }
 
-type loginData struct {
+type nokiaLoginData struct {
 	Success   bool
 	SID       string
 	CSRFToken string
 }
 
-type loginResp struct {
+type nokiaLoginResp struct {
 	Success   int    `json:"success"`
 	Reason    int    `json:"reason"`
 	Sid       string `json:"sid"`
 	CsrfToken string `json:"token"`
 }
 
-var ErrAuthenticationProcessStart = errors.New("could not start authentication process")
+var NokiaErrAuthenticationProcessStart = errors.New("could not start authentication process")
 
 func NewNokiaGateway(username, password, ip string) *NokiaGateway {
 	return &NokiaGateway{
@@ -46,7 +46,7 @@ func NewNokiaGateway(username, password, ip string) *NokiaGateway {
 }
 
 func AuthenticationProcessStartError(details string) error {
-	return fmt.Errorf("%w: %s", ErrAuthenticationProcessStart, details)
+	return fmt.Errorf("%w: %s", NokiaErrAuthenticationProcessStart, details)
 }
 
 func getNonce(ip string) (*nonceResp, error) {
@@ -69,17 +69,11 @@ func getNonce(ip string) (*nonceResp, error) {
 	return &nonceResp, nil
 }
 
-var ErrAuthentication = errors.New("could not authenticate")
-
-func AuthenticationError(details string) error {
-	return fmt.Errorf("%w: %s", ErrAuthentication, details)
-}
-
-func (l *loginResp) success() bool {
+func (l *nokiaLoginResp) success() bool {
 	return l.Sid != "" && l.CsrfToken != ""
 }
 
-func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginResp, error) {
+func getCredentials(username, password, ip string, nonceResp nonceResp) (*nokiaLoginResp, error) {
 	passHashInput := strings.ToLower(password)
 	userPassHash := Sha256Hash(username, passHashInput)
 	userPassNonceHash := Sha256Url(userPassHash, nonceResp.Nonce)
@@ -107,7 +101,7 @@ func getCredentials(username, password, ip string, nonceResp nonceResp) (*loginR
 		return nil, AuthenticationError(GetBody(login))
 	}
 
-	var loginResp loginResp
+	var loginResp nokiaLoginResp
 	jsonErr := json.NewDecoder(login.Body).Decode(&loginResp)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("error parsing login response: %w", jsonErr)
@@ -138,8 +132,6 @@ func (n *NokiaGateway) Login() error {
 	logrus.WithField("credentials", n.credentials).Debug("authenticated")
 	return nil
 }
-
-var ErrRebootFailed = errors.New("reboot failed")
 
 func (n *NokiaGateway) Reboot(dryRun bool) error {
 	err := n.ensureLoggedIn()

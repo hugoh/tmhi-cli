@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	NOK5G21 string = "NOK5G21"
+	ARCADIAN string = "ARCADIAN"
+	NOK5G21  string = "NOK5G21"
 )
 
 const (
@@ -96,7 +97,7 @@ func Cmd(version string) { //nolint:funlen
 			Name:     ConfigModel,
 			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigModel, configSource)),
 			Required: true,
-			Usage:    "gateway model: options: " + NOK5G21,
+			Usage:    fmt.Sprintf("gateway model: options: %s, %s", ARCADIAN, NOK5G21),
 		},
 		&cli.StringFlag{
 			Name:    ConfigIP,
