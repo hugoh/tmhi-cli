@@ -157,22 +157,7 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 		"params": formData,
 	}).Debug("reboot request prepared")
 
-	if !dryRun {
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("error sending reboot request: %w", err)
-		}
-		defer resp.Body.Close()
-
-		logrus.WithFields(LogHTTPResponseFields(resp)).Debug("reboot response")
-		if !HTTPRequestSuccessful(resp) {
-			logrus.WithFields(LogHTTPResponseFields(resp)).Error("reboot failed")
-			return ErrRebootFailed
-		}
-	}
-	logrus.Info("successfully requested gateway rebooted")
-	return nil
+	return doReboot(n.client, req, dryRun)
 }
 
 func (n *NokiaGateway) ensureLoggedIn() error {
