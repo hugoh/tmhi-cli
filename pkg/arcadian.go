@@ -111,21 +111,7 @@ func (a *ArcadianGateway) Reboot(dryRun bool) error {
 		"url": rebootRequestURL,
 	}).Debug("reboot request prepared")
 
-	if !dryRun {
-		resp, err := a.client.Do(req)
-		if err != nil {
-			return fmt.Errorf("error sending reboot request: %w", err)
-		}
-		defer resp.Body.Close()
-
-		logrus.WithFields(LogHTTPResponseFields(resp)).Debug("reboot response")
-		if !HTTPRequestSuccessful(resp) {
-			logrus.WithFields(LogHTTPResponseFields(resp)).Error("reboot failed")
-			return ErrRebootFailed
-		}
-	}
-	logrus.Info("successfully requested gateway rebooted")
-	return nil
+	return doReboot(a.client, req, dryRun)
 }
 
 func (a *ArcadianGateway) addRequestCredentials(req *http.Request) {
