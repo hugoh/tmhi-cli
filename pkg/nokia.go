@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 type NokiaGateway struct {
 	Username, Password, IP string
 	credentials            nokiaLoginData
+	client                 *http.Client
 }
 
 type nonceResp struct {
@@ -42,6 +44,7 @@ func NewNokiaGateway(username, password, ip string) *NokiaGateway {
 		Username: username,
 		Password: password,
 		IP:       ip,
+		client:   &http.Client{},
 	}
 }
 
@@ -73,56 +76,13 @@ func (l *nokiaLoginResp) success() bool {
 	return l.Sid != "" && l.CsrfToken != ""
 }
 
-func getCredentials(username, password, ip string, nonceResp nonceResp) (*nokiaLoginResp, error) {
-	passHashInput := strings.ToLower(password)
-	userPassHash := Sha256Hash(username, passHashInput)
-	userPassNonceHash := Sha256Url(userPassHash, nonceResp.Nonce)
-	reqURL := fmt.Sprintf("http://%s/login_web_app.cgi", ip)
-	reqParams := url.Values{
-		"userhash":      {Sha256Url(username, nonceResp.Nonce)},
-		"RandomKeyhash": {Sha256Url(nonceResp.RandomKey, nonceResp.Nonce)},
-		"response":      {userPassNonceHash},
-		"nonce":         {Base64urlEscape(nonceResp.Nonce)},
-		"enckey":        {Random16bytes()},
-		"enciv":         {Random16bytes()},
-	}
-	logrus.WithFields(logrus.Fields{
-		"url":    reqURL,
-		"params": reqParams,
-	}).Info("sending login request")
-	login, loginErr := http.PostForm(reqURL, reqParams) /* #nosec G107 */ //nolint:gosec,noctx,nolintlint //FIXME:
-	if loginErr != nil {
-		logrus.WithError(loginErr).Error("error while making login request")
-		return nil, AuthenticationError(loginErr.Error())
-	}
-	defer login.Body.Close()
-	if !HTTPRequestSuccessful(login) {
-		logrus.WithFields(LogHTTPResponseFields(login)).Error("error while making login request")
-		return nil, AuthenticationError(GetBody(login))
-	}
-
-	var loginResp nokiaLoginResp
-	jsonErr := json.NewDecoder(login.Body).Decode(&loginResp)
-	if jsonErr != nil {
-		return nil, fmt.Errorf("error parsing login response: %w", jsonErr)
-	}
-	logrus.WithField("response", loginResp).Debug("got login response")
-	var err error
-	if loginResp.success() {
-		err = nil
-	} else {
-		err = AuthenticationError("no valid credentials returned")
-	}
-	return &loginResp, err
-}
-
 func (n *NokiaGateway) Login() error {
 	nonceResp, nonceErr := getNonce(n.IP)
 	if nonceErr != nil {
 		return fmt.Errorf("error getting nonce: %w", nonceErr)
 	}
 
-	loginResp, loginErr := getCredentials(n.Username, n.Password, n.IP, *nonceResp)
+	loginResp, loginErr := n.getCredentials(*nonceResp)
 	if loginErr != nil {
 		return fmt.Errorf("login failed: %w", loginErr)
 	}
@@ -165,4 +125,61 @@ func (n *NokiaGateway) ensureLoggedIn() error {
 		return n.Login()
 	}
 	return nil
+}
+
+func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, error) {
+	passHashInput := strings.ToLower(n.Password)
+	userPassHash := Sha256Hash(n.Username, passHashInput)
+	userPassNonceHash := Sha256Url(userPassHash, nonceResp.Nonce)
+	reqURL := "http://" + n.IP + "/login_web_app.cgi"
+	reqParams := url.Values{
+		"userhash":      {Sha256Url(n.Username, nonceResp.Nonce)},
+		"RandomKeyhash": {Sha256Url(nonceResp.RandomKey, nonceResp.Nonce)},
+		"response":      {userPassNonceHash},
+		"nonce":         {Base64urlEscape(nonceResp.Nonce)},
+		"enckey":        {Random16bytes()},
+		"enciv":         {Random16bytes()},
+	}
+	logrus.WithFields(logrus.Fields{
+		"url":    reqURL,
+		"params": reqParams,
+	}).Info("sending login request")
+
+	// Build the POST request manually to avoid PostForm (noctx)
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		reqURL,
+		strings.NewReader(reqParams.Encode()),
+	)
+	if err != nil {
+		logrus.WithError(err).Error("error creating login request")
+		return nil, AuthenticationError(err.Error())
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	login, loginErr := n.client.Do(req)
+	if loginErr != nil {
+		logrus.WithError(loginErr).Error("error while making login request")
+		return nil, AuthenticationError(loginErr.Error())
+	}
+	defer login.Body.Close()
+	if !HTTPRequestSuccessful(login) {
+		logrus.WithFields(LogHTTPResponseFields(login)).Error("error while making login request")
+		return nil, AuthenticationError(GetBody(login))
+	}
+
+	var loginResp nokiaLoginResp
+	jsonErr := json.NewDecoder(login.Body).Decode(&loginResp)
+	if jsonErr != nil {
+		return nil, fmt.Errorf("error parsing login response: %w", jsonErr)
+	}
+	logrus.WithField("response", loginResp).Debug("got login response")
+	var authErr error
+	if loginResp.success() {
+		authErr = nil
+	} else {
+		authErr = AuthenticationError("no valid credentials returned")
+	}
+	return &loginResp, authErr
 }
