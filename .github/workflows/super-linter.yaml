@@ -31,6 +31,5 @@ jobs:
         env:
           VALIDATE_GO: false
           VALIDATE_GO_MODULES: false # FIXME: Timeout exceeded: try increasing it by passing --timeout option
-          FILTER_REGEX_EXCLUDE: _test.go$
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
