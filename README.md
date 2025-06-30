@@ -18,7 +18,7 @@ OPTIONS:
    --config string, -c string  use the specified TOML configuration file
    --debug, -d                 display debugging output in the console (default: false)
    --dry-run, -D               do not perform any change to the gateway (default: false)
-   --gateway.model string      gateway model: options: ARCADIAN, NOK5G21
+   --gateway.model string      gateway model: options: ARCADYAN, NOK5G21
    --gateway.ip string         gateway IP (default: "192.168.12.1")
    --login.username string     admin username (default: "admin")
    --login.password string     admin password
@@ -28,7 +28,7 @@ OPTIONS:
 
 ## Notes
 
-Currently only supports the reboot function. Supports both the Nokia and Arcadian gateways.
+Currently only supports the reboot function. Supports both the Nokia and Arcadyan gateways.
 
 ## See also
 

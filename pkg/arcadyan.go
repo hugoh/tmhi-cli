@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type ArcadianGateway struct {
+type ArcadyanGateway struct {
 	Username, Password, IP string
 	client                 *http.Client
 	credentials            arcadianLoginData
@@ -32,8 +32,8 @@ type arcadianLoginResp struct {
 	} `json:"auth"`
 }
 
-func NewArcadianGateway(username, password, ip string) *ArcadianGateway {
-	return &ArcadianGateway{
+func NewArcadyanGateway(username, password, ip string) *ArcadyanGateway {
+	return &ArcadyanGateway{
 		client:   &http.Client{},
 		Username: username,
 		Password: password,
@@ -41,7 +41,7 @@ func NewArcadianGateway(username, password, ip string) *ArcadianGateway {
 	}
 }
 
-func (a *ArcadianGateway) Login() error {
+func (a *ArcadyanGateway) Login() error {
 	// Prepare request body
 	bodyMap := map[string]string{
 		"username": a.Username,
@@ -94,7 +94,7 @@ func (a *ArcadianGateway) Login() error {
 	return nil
 }
 
-func (a *ArcadianGateway) Reboot(dryRun bool) error {
+func (a *ArcadyanGateway) Reboot(dryRun bool) error {
 	err := a.ensureLoggedIn()
 	if err != nil {
 		return fmt.Errorf("cannot reboot without successful login flow: %w", err)
@@ -114,11 +114,11 @@ func (a *ArcadianGateway) Reboot(dryRun bool) error {
 	return doReboot(a.client, req, dryRun)
 }
 
-func (a *ArcadianGateway) addRequestCredentials(req *http.Request) {
+func (a *ArcadyanGateway) addRequestCredentials(req *http.Request) {
 	req.Header.Set("Authorization", "Bearer "+a.credentials.Token)
 }
 
-func (a *ArcadianGateway) ensureLoggedIn() error {
+func (a *ArcadyanGateway) ensureLoggedIn() error {
 	now := int(time.Now().Unix())
 	if a.credentials.Token == "" || a.credentials.Expiration <= now {
 		return a.Login()
