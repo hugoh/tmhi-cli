@@ -14,8 +14,8 @@ func getGateway(model, username, password, ip string, debug bool) (pkg.GatewayI,
 	LogSetup(debug)
 	var gateway pkg.GatewayI
 	switch model {
-	case "ARCADIAN":
-		gateway = pkg.NewArcadianGateway(username, password, ip)
+	case "ARCADYAN":
+		gateway = pkg.NewArcadyanGateway(username, password, ip)
 	case "NOK5G21":
 		gateway = pkg.NewNokiaGateway(username, password, ip)
 	default:

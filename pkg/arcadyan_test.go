@@ -26,7 +26,7 @@ func newTestClient(resp *http.Response, err error) *http.Client {
 	}
 }
 
-func TestArcadianGateway_Login_Success(t *testing.T) {
+func TestArcadyanGateway_Login_Success(t *testing.T) {
 	// Prepare mock response
 	body := `{"auth":{"expiration":1234567890,"refreshCountLeft":5,"refreshCountMax":10,"token":"testtoken"}}`
 	resp := &http.Response{
@@ -35,7 +35,7 @@ func TestArcadianGateway_Login_Success(t *testing.T) {
 	}
 	client := newTestClient(resp, nil)
 
-	gw := &ArcadianGateway{
+	gw := &ArcadyanGateway{
 		Username: "user",
 		Password: "pass",
 		IP:       "1.2.3.4",
@@ -48,14 +48,14 @@ func TestArcadianGateway_Login_Success(t *testing.T) {
 	assert.Equal(t, "testtoken", gw.credentials.Token)
 }
 
-func TestArcadianGateway_Login_Non200Status(t *testing.T) {
+func TestArcadyanGateway_Login_Non200Status(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: http.StatusUnauthorized,
 		Body:       io.NopCloser(bytes.NewBufferString("unauthorized")),
 	}
 	client := newTestClient(resp, nil)
 
-	gw := &ArcadianGateway{
+	gw := &ArcadyanGateway{
 		Username: "user",
 		Password: "pass",
 		IP:       "1.2.3.4",
@@ -67,14 +67,14 @@ func TestArcadianGateway_Login_Non200Status(t *testing.T) {
 	assert.Contains(t, err.Error(), "unexpected status 401")
 }
 
-func TestArcadianGateway_Login_InvalidJSON(t *testing.T) {
+func TestArcadyanGateway_Login_InvalidJSON(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       io.NopCloser(bytes.NewBufferString("{invalid json")),
 	}
 	client := newTestClient(resp, nil)
 
-	gw := &ArcadianGateway{
+	gw := &ArcadyanGateway{
 		Username: "user",
 		Password: "pass",
 		IP:       "1.2.3.4",
@@ -86,10 +86,10 @@ func TestArcadianGateway_Login_InvalidJSON(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to decode login response")
 }
 
-func TestArcadianGateway_Login_HTTPClientError(t *testing.T) {
+func TestArcadyanGateway_Login_HTTPClientError(t *testing.T) {
 	client := newTestClient(nil, errors.New("network error"))
 
-	gw := &ArcadianGateway{
+	gw := &ArcadyanGateway{
 		Username: "user",
 		Password: "pass",
 		IP:       "1.2.3.4",
