@@ -71,6 +71,12 @@ func Reboot(_ context.Context, cCtx *cli.Command) error {
 
 func Cmd(version string) { //nolint:funlen
 	var configFile string
+
+	home, err := os.UserHomeDir()
+	defaultConfig := ".tmhi-cli.toml"
+	if err == nil {
+		defaultConfig = home + "/" + defaultConfig
+	}
 	configSource := altsrc.NewStringPtrSourcer(&configFile)
 
 	flags := []cli.Flag{
@@ -78,6 +84,7 @@ func Cmd(version string) { //nolint:funlen
 			Name:        ConfigConfig,
 			Aliases:     []string{"c"},
 			Usage:       "use the specified TOML configuration file",
+			Value:       defaultConfig,
 			Destination: &configFile,
 			TakesFile:   true,
 		},
