@@ -57,7 +57,7 @@ func (a *ArcadyanGateway) Login() error {
 	logrus.WithFields(logrus.Fields{
 		"url":    reqURL,
 		"params": bodyMap,
-	}).Info("sending login request")
+	}).Debug("sending login request")
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, reqURL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create login request: %w", err)
