@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -112,6 +113,61 @@ func (a *ArcadyanGateway) Reboot(dryRun bool) error {
 	}).Debug("reboot request prepared")
 
 	return doReboot(a.client, req, dryRun)
+}
+
+func (a *ArcadyanGateway) Info() error {
+	return a.Request("GET", "/TMI/v1/gateway/?get=all", false, false)
+}
+
+func (a *ArcadyanGateway) Request(method, path string, loginFirst bool, details bool) error {
+	if loginFirst {
+		if err := a.ensureLoggedIn(); err != nil {
+			return fmt.Errorf("login failed: %w", err)
+		}
+	}
+
+	fullURL := "http://" + a.IP + path
+	req, err := http.NewRequestWithContext(context.Background(), method, fullURL, nil)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	if a.credentials.Token != "" {
+		a.addRequestCredentials(req)
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"method": method,
+		"url":    fullURL,
+	}).Debug("making request")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response body: %w", err)
+	}
+
+	if details {
+		fields := logrus.Fields{}
+		for k, v := range resp.Header {
+			fields[k] = strings.Join(v, ", ")
+		}
+		logrus.WithFields(fields).Info("HTTP response headers")
+	}
+
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, body, "", "  "); err != nil {
+		EchoOut(string(body))
+	} else {
+		EchoOut(prettyJSON.String())
+	}
+
+	return nil
 }
 
 func (a *ArcadyanGateway) addRequestCredentials(req *http.Request) {

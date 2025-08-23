@@ -59,6 +59,30 @@ func Login(_ context.Context, cCtx *cli.Command) error {
 	return nil
 }
 
+func Req(_ context.Context, cCtx *cli.Command) error {
+	const requiredArgsCount = 2
+	if cCtx.NArg() != requiredArgsCount {
+		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
+	}
+	method := cCtx.Args().Get(0)
+	path := cCtx.Args().Get(1)
+	loginFirst := cCtx.Bool("login")
+
+	gateway := getGatewayFromCtxOrFail(cCtx)
+	if err := gateway.Request(method, path, loginFirst, true); err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	return nil
+}
+
+func Info(_ context.Context, cCtx *cli.Command) error {
+	gateway := getGatewayFromCtxOrFail(cCtx)
+	if err := gateway.Info(); err != nil {
+		return fmt.Errorf("info command failed: %w", err)
+	}
+	return nil
+}
+
 func Reboot(_ context.Context, cCtx *cli.Command) error {
 	gateway := getGatewayFromCtxOrFail(cCtx)
 	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
@@ -135,6 +159,25 @@ func Cmd(version string) { //nolint:funlen
 			Name:   "reboot",
 			Usage:  "Reboot the router",
 			Action: Reboot,
+		},
+		{
+			Name:   "info",
+			Usage:  "Get gateway information",
+			Action: Info,
+		},
+		{
+			Name:      "req",
+			Usage:     "Make a custom HTTP request to the gateway",
+			ArgsUsage: "<HTTP method> <path>",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "login",
+					Aliases: []string{"l"},
+					Value:   false,
+					Usage:   "login before making request",
+				},
+			},
+			Action: Req,
 		},
 	}
 

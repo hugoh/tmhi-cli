@@ -1,3 +1,4 @@
 [tools]
+gh = "latest"
 go = "latest"
 task = "latest"

@@ -120,6 +120,14 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 	return doReboot(n.client, req, dryRun)
 }
 
+func (n *NokiaGateway) Request(_, _ string, _ bool, _ bool) error {
+	return ErrNotImplemented
+}
+
+func (n *NokiaGateway) Info() error {
+	return ErrNotImplemented
+}
+
 func (n *NokiaGateway) ensureLoggedIn() error {
 	if !n.credentials.Success {
 		return n.Login()
