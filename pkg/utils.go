@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -59,4 +60,11 @@ func Random16bytes() string {
 		return ""
 	}
 	return Base64urlEscape(base64.StdEncoding.EncodeToString(b))
+}
+
+func EchoOut(str string) {
+	_, err := os.Stdout.WriteString(str + "\n")
+	if err != nil {
+		logrus.WithError(err).Error("error writing output")
+	}
 }

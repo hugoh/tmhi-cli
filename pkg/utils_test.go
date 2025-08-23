@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"io"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,4 +24,20 @@ func Test_Random16bytes(t *testing.T) {
 	out2 := Random16bytes()
 	assert.NotEqual(t, "", out2)
 	assert.NotEqual(t, out1, out2)
+}
+
+func Test_EchoOut(t *testing.T) {
+	old := os.Stdout
+	defer func() { os.Stdout = old }()
+
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	os.Stdout = w
+
+	testString := "test echo output"
+	EchoOut(testString)
+
+	w.Close()
+	out, _ := io.ReadAll(r)
+	assert.Equal(t, testString+"\n", string(out))
 }

@@ -8,14 +8,20 @@ NAME:
    tmhi-cli - Utility to interact with T-Mobile Home Internet gateway
 
 USAGE:
-   tmhi-cli [command [command options]]
+   tmhi-cli [global options] [command [command options]]
+
+VERSION:
+   dev
 
 COMMANDS:
-   login   Verify that the credentials can log the tool in
-   reboot  Reboot the router
+   login    Verify that the credentials can log the tool in
+   reboot   Reboot the router
+   info     Get gateway information
+   dev      Make a custom HTTP request to the gateway
+   help, h  Shows a list of commands or help for one command
 
-OPTIONS:
-   --config string, -c string  use the specified TOML configuration file
+GLOBAL OPTIONS:
+   --config string, -c string  use the specified TOML configuration file (default: "/Users/hugoh/.tmhi-cli.toml")
    --debug, -d                 display debugging output in the console (default: false)
    --dry-run, -D               do not perform any change to the gateway (default: false)
    --gateway.model string      gateway model: options: ARCADYAN, NOK5G21
@@ -25,10 +31,6 @@ OPTIONS:
    --help, -h                  show help
    --version, -v               print the version
 ```
-
-## Notes
-
-Currently only supports the reboot function. Supports both the Nokia and Arcadyan gateways.
 
 ## See also
 
