@@ -145,7 +145,7 @@ func Cmd(version string) { //nolint:funlen
 		&cli.StringFlag{
 			Name:     ConfigPassword,
 			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigPassword, configSource)),
-			Required: true,
+			Required: false,
 			Usage:    "admin password",
 		},
 	}
