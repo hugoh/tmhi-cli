@@ -10,14 +10,12 @@ NAME:
 USAGE:
    tmhi-cli [global options] [command [command options]]
 
-VERSION:
-   dev
-
 COMMANDS:
    login    Verify that the credentials can log the tool in
    reboot   Reboot the router
    info     Get gateway information
-   dev      Make a custom HTTP request to the gateway
+   status   Check gateway status
+   req      Make a custom HTTP request to the gateway
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -28,6 +26,8 @@ GLOBAL OPTIONS:
    --gateway.ip string         gateway IP (default: "192.168.12.1")
    --login.username string     admin username (default: "admin")
    --login.password string     admin password
+   --retries int               number of retries (default: 0)
+   --timeout duration          request timeout in seconds (default: 5s)
    --help, -h                  show help
    --version, -v               print the version
 ```
