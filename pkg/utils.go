@@ -30,6 +30,10 @@ func LogHTTPResponseFields(resp *http.Response) logrus.Fields {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading HTTP body")
+		return logrus.Fields{
+			"status": resp.StatusCode,
+			"body":   "error reading HTTP body: " + err.Error(),
+		}
 	}
 	return logrus.Fields{
 		"status": resp.StatusCode,
@@ -67,4 +71,15 @@ func EchoOut(str string) {
 	if err != nil {
 		logrus.WithError(err).Error("error writing output")
 	}
+}
+
+func EchoStatus(str string, status bool) {
+	EchoOut(str + ": " + BoolEmoji(status))
+}
+
+func BoolEmoji(b bool) string {
+	if b {
+		return "✅"
+	}
+	return "❌"
 }

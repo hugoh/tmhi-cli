@@ -2,11 +2,8 @@ package pkg
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -14,9 +11,9 @@ import (
 )
 
 type ArcadyanGateway struct {
-	Username, Password, IP string
-	client                 *http.Client
-	credentials            arcadianLoginData
+	*GatewayCommon
+
+	credentials arcadianLoginData
 }
 
 type arcadianLoginData struct {
@@ -24,160 +21,148 @@ type arcadianLoginData struct {
 	Token      string
 }
 
-type arcadianLoginResp struct {
-	Auth struct {
-		Expiration       int    `json:"expiration"`
-		RefreshCountLeft int    `json:"refreshCountLeft"`
-		RefreshCountMax  int    `json:"refreshCountMax"`
-		Token            string `json:"token"`
-	} `json:"auth"`
-}
+const InfoURL = "/TMI/v1/gateway/?get=all"
 
-func NewArcadyanGateway(username, password, ip string) *ArcadyanGateway {
-	return &ArcadyanGateway{
-		client:   &http.Client{},
-		Username: username,
-		Password: password,
-		IP:       ip,
-	}
+func NewArcadyanGateway() *ArcadyanGateway {
+	ret := &ArcadyanGateway{GatewayCommon: NewGatewayCommon()}
+	ret.Client.SetHeader("Accept", "application/json")
+	return ret
 }
 
 func (a *ArcadyanGateway) Login() error {
-	// Prepare request body
+	if a.isLoggedIn() {
+		return nil
+	}
+
 	bodyMap := map[string]string{
 		"username": a.Username,
 		"password": a.Password,
 	}
-	bodyBytes, err := json.Marshal(bodyMap)
-	if err != nil {
-		return fmt.Errorf("failed to marshal login request body: %w", err)
-	}
 
-	// Send POST request
-	reqURL := "http://" + a.IP + "/TMI/v1/auth/login"
+	reqPath := "/TMI/v1/auth/login"
 	logrus.WithFields(logrus.Fields{
-		"url":    reqURL,
+		"url":    reqPath,
 		"params": bodyMap,
 	}).Debug("sending login request")
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, reqURL, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create login request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("login request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("unexpected status %d and failed to read body: %w", resp.StatusCode, err)
+	var loginResp struct {
+		Auth struct {
+			Expiration       int
+			RefreshCountLeft int
+			RefreshCountMax  int
+			Token            string
 		}
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body)) //nolint:err113
+	}
+	resp, err := a.Client.R().
+		SetBody(bodyMap).
+		SetResult(&loginResp).
+		Post(reqPath)
+	if err != nil {
+		return fmt.Errorf("login request failed: failed to decode login response: %w", err)
 	}
 
-	// Parse response
-	var loginResp arcadianLoginResp
-	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
-		return fmt.Errorf("failed to decode login response: %w", err)
+	if resp.IsError() {
+		return AuthenticationError(fmt.Sprintf("unexpected status %d: %s", resp.StatusCode(), resp.String()))
 	}
-	logrus.WithField("response", loginResp).Debug("got login response")
 
-	// Populate return type
+	if loginResp.Auth.Token == "" {
+		return AuthenticationError("login response missing auth token")
+	}
+
 	a.credentials = arcadianLoginData{
 		Expiration: loginResp.Auth.Expiration,
 		Token:      loginResp.Auth.Token,
 	}
+	a.Client.SetAuthToken(a.credentials.Token)
+	a.Authenticated = true
 
 	return nil
 }
 
 func (a *ArcadyanGateway) Reboot(dryRun bool) error {
-	err := a.ensureLoggedIn()
+	err := a.Login()
 	if err != nil {
 		return fmt.Errorf("cannot reboot without successful login flow: %w", err)
 	}
 
-	rebootRequestURL := "http://" + a.IP + "/TMI/v1/gateway/reset?set=reboot"
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, rebootRequestURL, nil)
-	if err != nil {
-		return fmt.Errorf("error creating reboot request: %w", err)
-	}
-	a.addRequestCredentials(req)
+	rebootRequestPath := "/TMI/v1/gateway/reset?set=reboot"
 
 	logrus.WithFields(logrus.Fields{
-		"url": rebootRequestURL,
+		"url": rebootRequestPath,
 	}).Debug("reboot request prepared")
 
-	return doReboot(a.client, req, dryRun)
+	if dryRun {
+		logrus.Info("Dry run - would send reboot request")
+		return nil
+	}
+
+	resp, err := a.Client.R().
+		Post(rebootRequestPath)
+	if err != nil {
+		return fmt.Errorf("reboot request failed: %w", err)
+	}
+
+	if !resp.IsSuccess() {
+		return fmt.Errorf("%w: status %d: %s", ErrRebootFailed, resp.StatusCode(), resp.String())
+	}
+
+	return nil
 }
 
 func (a *ArcadyanGateway) Info() error {
-	return a.Request("GET", "/TMI/v1/gateway/?get=all", false, false)
+	return a.Request("GET", InfoURL)
 }
 
-func (a *ArcadyanGateway) Request(method, path string, loginFirst bool, details bool) error {
-	if loginFirst {
-		if err := a.ensureLoggedIn(); err != nil {
-			return fmt.Errorf("login failed: %w", err)
-		}
-	}
-
-	fullURL := "http://" + a.IP + path
-	req, err := http.NewRequestWithContext(context.Background(), method, fullURL, nil)
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
-
-	if a.credentials.Token != "" {
-		a.addRequestCredentials(req)
-	}
-
+func (a *ArcadyanGateway) Request(method, path string) error {
 	logrus.WithFields(logrus.Fields{
 		"method": method,
-		"url":    fullURL,
+		"url":    path,
 	}).Debug("making request")
-
-	resp, err := a.client.Do(req)
+	resp, err := a.Client.R().Execute(method, path)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("error reading response body: %w", err)
-	}
-
-	if details {
-		fields := logrus.Fields{}
-		for k, v := range resp.Header {
-			fields[k] = strings.Join(v, ", ")
+	contentType := resp.Header().Get("Content-Type")
+	body := resp.Body()
+	if strings.HasPrefix(contentType, "application/json") {
+		var prettyJSON bytes.Buffer
+		if err := json.Indent(&prettyJSON, body, "", "  "); err != nil {
+			EchoOut(string(body))
+		} else {
+			EchoOut(prettyJSON.String())
 		}
-		logrus.WithFields(fields).Info("HTTP response headers")
-	}
-
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, body, "", "  "); err != nil {
-		EchoOut(string(body))
 	} else {
-		EchoOut(prettyJSON.String())
+		EchoOut(string(body))
 	}
+	return nil
+}
+
+func (a *ArcadyanGateway) Status() error {
+	a.StatusCore()
+
+	// Info
+	var result struct {
+		Signal struct {
+			Generic struct {
+				Registration string
+			}
+		}
+	}
+	info, err := a.Client.R().SetResult(&result).Get(InfoURL)
+	if err != nil {
+		return fmt.Errorf("failed to get registration status: %w",
+			err)
+	}
+	regStatus := "unknown"
+	if info.IsSuccess() {
+		regStatus = result.Signal.Generic.Registration
+	}
+	EchoOut("Registration status: " + regStatus)
 
 	return nil
 }
 
-func (a *ArcadyanGateway) addRequestCredentials(req *http.Request) {
-	req.Header.Set("Authorization", "Bearer "+a.credentials.Token)
-}
-
-func (a *ArcadyanGateway) ensureLoggedIn() error {
+func (a *ArcadyanGateway) isLoggedIn() bool {
 	now := int(time.Now().Unix())
-	if a.credentials.Token == "" || a.credentials.Expiration <= now {
-		return a.Login()
-	}
-	return nil
+	return a.credentials.Token != "" && a.credentials.Expiration > now
 }

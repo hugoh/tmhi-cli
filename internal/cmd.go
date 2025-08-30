@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/hugoh/tmhi-cli/pkg"
 	"github.com/sirupsen/logrus"
@@ -12,9 +13,16 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+type contextKey string
+
 const (
-	ARCADYAN string = "ARCADYAN"
-	NOK5G21  string = "NOK5G21"
+	gatewayContextKey contextKey = "gateway"
+)
+
+const (
+	ARCADYAN       string        = "ARCADYAN"
+	NOK5G21        string        = "NOK5G21"
+	DefaultTimeout time.Duration = 5 * time.Second
 )
 
 const (
@@ -27,29 +35,38 @@ const (
 	ConfigGateway  string = "gateway."
 	ConfigModel    string = ConfigGateway + "model"
 	ConfigIP       string = ConfigGateway + "ip"
+	ConfigTimeout  string = "timeout"
+	ConfigRetries  string = "retries"
 )
 
 func LogSetup(debugFlag bool) {
 	if debugFlag {
 		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
 	}
 }
 
-func getGatewayFromCtxOrFail(cCtx *cli.Command) pkg.GatewayI { //nolint:ireturn
-	gateway, err := getGateway(cCtx.String(ConfigModel),
-		cCtx.String(ConfigUsername),
-		cCtx.String(ConfigPassword),
-		cCtx.String(ConfigIP),
-		cCtx.Bool(ConfigDebug))
+func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	gateway, err := getGateway(cmd.Version,
+		cmd.String(ConfigModel),
+		cmd.String(ConfigUsername),
+		cmd.String(ConfigPassword),
+		cmd.String(ConfigIP),
+		cmd.Duration(ConfigTimeout),
+		cmd.Int(ConfigRetries),
+		cmd.Bool(ConfigDebug),
+	)
 	if err != nil {
 		logrus.WithError(err).Fatal("unsupported gateway")
 		// NOTREACHED
 	}
-	return gateway
+	newCtx := context.WithValue(ctx, gatewayContextKey, gateway)
+	return newCtx, nil
 }
 
-func Login(_ context.Context, cCtx *cli.Command) error {
-	gateway := getGatewayFromCtxOrFail(cCtx)
+func Login(ctx context.Context, _ *cli.Command) error {
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
 	err := gateway.Login()
 	if err != nil {
 		logrus.WithError(err).Fatal("could not log in")
@@ -59,33 +76,47 @@ func Login(_ context.Context, cCtx *cli.Command) error {
 	return nil
 }
 
-func Req(_ context.Context, cCtx *cli.Command) error {
+func Req(ctx context.Context, cmd *cli.Command) error {
 	const requiredArgsCount = 2
-	if cCtx.NArg() != requiredArgsCount {
+	if cmd.NArg() != requiredArgsCount {
 		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
 	}
-	method := cCtx.Args().Get(0)
-	path := cCtx.Args().Get(1)
-	loginFirst := cCtx.Bool("login")
+	method := cmd.Args().Get(0)
+	path := cmd.Args().Get(1)
+	loginFirst := cmd.Bool("login")
 
-	gateway := getGatewayFromCtxOrFail(cCtx)
-	if err := gateway.Request(method, path, loginFirst, true); err != nil {
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	if loginFirst {
+		if err := gateway.Login(); err != nil {
+			return fmt.Errorf("request failed: %w", err)
+		}
+	}
+	if err := gateway.Request(method, path); err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
 	return nil
 }
 
-func Info(_ context.Context, cCtx *cli.Command) error {
-	gateway := getGatewayFromCtxOrFail(cCtx)
+func Info(ctx context.Context, _ *cli.Command) error {
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
 	if err := gateway.Info(); err != nil {
 		return fmt.Errorf("info command failed: %w", err)
 	}
 	return nil
 }
 
-func Reboot(_ context.Context, cCtx *cli.Command) error {
-	gateway := getGatewayFromCtxOrFail(cCtx)
-	err := gateway.Reboot(cCtx.Bool(ConfigDryRun))
+func Status(ctx context.Context, _ *cli.Command) error {
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	if err := gateway.Status(); err != nil {
+		logrus.WithError(err).Error("status check failed")
+		return fmt.Errorf("status check failed: %w", err)
+	}
+	return nil
+}
+
+func Reboot(ctx context.Context, cmd *cli.Command) error {
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	err := gateway.Reboot(cmd.Bool(ConfigDryRun))
 	if err != nil {
 		logrus.WithError(err).Error("could not reboot gateway")
 		return fmt.Errorf("could not reboot gateway: %w", err)
@@ -148,6 +179,18 @@ func Cmd(version string) { //nolint:funlen
 			Required: false,
 			Usage:    "admin password",
 		},
+		&cli.IntFlag{
+			Name:    ConfigRetries,
+			Sources: cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
+			Value:   0,
+			Usage:   "number of retries",
+		},
+		&cli.DurationFlag{
+			Name:    ConfigTimeout,
+			Sources: cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
+			Value:   DefaultTimeout,
+			Usage:   "request timeout in seconds",
+		},
 	}
 	commands := []*cli.Command{
 		{
@@ -164,6 +207,11 @@ func Cmd(version string) { //nolint:funlen
 			Name:   "info",
 			Usage:  "Get gateway information",
 			Action: Info,
+		},
+		{
+			Name:   "status",
+			Usage:  "Check gateway status",
+			Action: Status,
 		},
 		{
 			Name:      "req",
@@ -187,6 +235,7 @@ func Cmd(version string) { //nolint:funlen
 		Version:  version,
 		Flags:    flags,
 		Commands: commands,
+		Before:   commonContext,
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
