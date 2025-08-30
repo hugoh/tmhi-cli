@@ -88,7 +88,7 @@ tasks:
 
   testall:
     summary: Run all tests
-    deps: [test,lint]
+    deps: [test, lint]
 
   test:
     summary: Run tests
