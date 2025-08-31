@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-	// mockGateway implements pkg.GatewayI for testing internal command handlers.
+// mockGateway implements pkg.GatewayI for testing internal command handlers.
 type mockGateway struct {
 	loginCalled   bool
 	loginErr      error

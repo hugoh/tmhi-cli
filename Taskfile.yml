@@ -51,6 +51,7 @@ tasks:
     cmds:
       - goimports -w .
       - go tool github.com/daixiang0/gci write .
+      - go tool github.com/segmentio/golines -m 120 -w .
       - go tool mvdan.cc/gofumpt -w .
 
   tidy:
