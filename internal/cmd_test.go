@@ -53,5 +53,11 @@ func TestCmd_Version(t *testing.T) {
 		Cmd(testVersion)
 	})
 
-	assert.True(t, strings.Contains(out, testVersion), "expected version output to contain %q, got: %q", testVersion, out)
+	assert.True(
+		t,
+		strings.Contains(out, testVersion),
+		"expected version output to contain %q, got: %q",
+		testVersion,
+		out,
+	)
 }
