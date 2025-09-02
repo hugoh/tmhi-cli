@@ -33,10 +33,10 @@ func TestGateway(t *testing.T) {
 		assert.Nil(t, g)
 	})
 
-	t.Run("Missing credentials error", func(t *testing.T) {
+	t.Run("Missing credentials is not an error", func(t *testing.T) {
 		g, err := getGateway("test-version", NOK5G21, "", "", testIP, 0, 0, false)
-		assert.Error(t, err)
-		assert.Nil(t, g)
+		assert.NoError(t, err)
+		assert.NotNil(t, g)
 	})
 
 	t.Run("Client configuration", func(t *testing.T) {

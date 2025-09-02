@@ -29,9 +29,6 @@ func getGateway(version, model, username, password, ip string, timeout time.Dura
 		return nil, fmt.Errorf("%w: %s", ErrUnknownGateway, model)
 	}
 
-	if username == "" || password == "" {
-		return nil, ErrMissingCredentials
-	}
 	gateway.NewClient(version, ip, timeout, retries, debug)
 	gateway.AddCredentials(username, password)
 	return gateway, nil

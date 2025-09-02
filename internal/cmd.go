@@ -58,7 +58,7 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 		cmd.Bool(ConfigDebug),
 	)
 	if err != nil {
-		logrus.WithError(err).Fatal("unsupported gateway")
+		logrus.WithError(err).Fatal("could not instantiate gateway")
 		// NOTREACHED
 	}
 	newCtx := context.WithValue(ctx, gatewayContextKey, gateway)
