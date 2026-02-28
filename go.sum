@@ -108,6 +108,7 @@ github.com/alingse/nilnesserr v0.2.0 h1:raLem5KG7EFVb4UIDAXgrv3N2JIaffeKNtcEXkEW
 github.com/alingse/nilnesserr v0.2.0/go.mod h1:1xJPrXonEtX7wyTq8Dytns5P2hNzoWymVUIaKm4HNFg=
 github.com/anthropics/anthropic-sdk-go v1.19.0 h1:mO6E+ffSzLRvR/YUH9KJC0uGw0uV8GjISIuzem//3KE=
 github.com/anthropics/anthropic-sdk-go v1.19.0/go.mod h1:WTz31rIUHUHqai2UslPpw5CwXrQP3geYBioRV4WOLvE=
+github.com/anthropics/anthropic-sdk-go v1.26.0 h1:oUTzFaUpAevfuELAP1sjL6CQJ9HHAfT7CoSYSac11PY=
 github.com/anthropics/anthropic-sdk-go v1.26.0/go.mod h1:qUKmaW+uuPB64iy1l+4kOSvaLqPXnHTTBKH6RVZ7q5Q=
 github.com/ashanbrown/forbidigo/v2 v2.3.0 h1:OZZDOchCgsX5gvToVtEBoV2UWbFfI6RKQTir2UZzSxo=
 github.com/ashanbrown/forbidigo/v2 v2.3.0/go.mod h1:5p6VmsG5/1xx3E785W9fouMxIOkvY2rRV9nMdWadd6c=
@@ -521,6 +522,7 @@ github.com/onsi/gomega v1.38.2 h1:eZCjf2xjZAqe+LeWvKb5weQ+NcPwX84kqJ0cZNxok2A=
 github.com/onsi/gomega v1.38.2/go.mod h1:W2MJcYxRGV63b418Ai34Ud0hEdTVXq9NW9+Sx6uXf3k=
 github.com/openai/openai-go/v3 v3.8.1 h1:b+YWsmwqXnbpSHWQEntZAkKciBZ5CJXwL68j+l59UDg=
 github.com/openai/openai-go/v3 v3.8.1/go.mod h1:UOpNxkqC9OdNXNUfpNByKOtB4jAL0EssQXq5p8gO0Xs=
+github.com/openai/openai-go/v3 v3.23.0 h1:FRFwTcB4FoWFtIunTY/8fgHvzSHgqbfWjiCwOMVrsvw=
 github.com/openai/openai-go/v3 v3.23.0/go.mod h1:cdufnVK14cWcT9qA1rRtrXx4FTRsgbDPW7Ia7SS5cZo=
 github.com/otiai10/copy v1.2.0/go.mod h1:rrF5dJ5F0t/EWSYODDu4j9/vEeYHMkc8jt0zJChqQWw=
 github.com/otiai10/copy v1.14.0 h1:dCI/t1iTdYGtkvCuBG2BgR6KZa83PTclw4U5n2wAllU=
@@ -599,7 +601,10 @@ github.com/sashamelentyev/usestdlibvars v1.29.0 h1:8J0MoRrw4/NAXtjQqTHrbW9NN+3iM
 github.com/sashamelentyev/usestdlibvars v1.29.0/go.mod h1:8PpnjHMk5VdeWlVb4wCdrB8PNbLqZ3wBZTZWkrpZZL8=
 github.com/securego/gosec/v2 v2.22.11 h1:tW+weM/hCM/GX3iaCV91d5I6hqaRT2TPsFM1+USPXwg=
 github.com/securego/gosec/v2 v2.22.11/go.mod h1:KE4MW/eH0GLWztkbt4/7XpyH0zJBBnu7sYB4l6Wn7Mw=
+github.com/securego/gosec/v2 v2.24.1 h1:lJ147NVmRoSKiu7x1dh0mRXIWO1OEpQ7foY0xMOhXy8=
 github.com/securego/gosec/v2 v2.24.1/go.mod h1:AdDJbjcG/XxFgVv7pW19vMNYlFM6+Q6Qy3t6lWAUcEY=
+github.com/securego/gosec/v2 v2.24.5 h1:hD+aPC5XFj5frgHinsgWmh72M/0pHJkdOYvXUE/OieY=
+github.com/securego/gosec/v2 v2.24.5/go.mod h1:AdDJbjcG/XxFgVv7pW19vMNYlFM6+Q6Qy3t6lWAUcEY=
 github.com/segmentio/golines v0.13.0 h1:GfbpsxoF4eYuEZD3mxrlsN/XD30m6nOO4QLQj2JIa90=
 github.com/segmentio/golines v0.13.0/go.mod h1:MMEi38dnJiyxqFZqFOqN14QMzWHzj/i0+L9Q2MsVr64=
 github.com/sergi/go-diff v1.2.0 h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=
@@ -1039,6 +1044,7 @@ google.golang.org/appengine v1.6.5/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCID
 google.golang.org/appengine v1.6.6/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
 google.golang.org/genai v1.37.0 h1:dgp71k1wQ+/+APdZrN3LFgAGnVnr5IdTF1Oj0Dg+BQc=
 google.golang.org/genai v1.37.0/go.mod h1:A3kkl0nyBjyFlNjgxIwKq70julKbIxpSxqKO5gw/gmk=
+google.golang.org/genai v1.47.0 h1:iWCS7gEdO6rctOqfCYLOrZGKu2D+N42aTnCEcBvB1jo=
 google.golang.org/genai v1.47.0/go.mod h1:A3kkl0nyBjyFlNjgxIwKq70julKbIxpSxqKO5gw/gmk=
 google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8/go.mod h1:JiN7NxoALGmiZfu7CAH4rXhgtRTLTxftemlI0sWmxmc=
 google.golang.org/genproto v0.0.0-20190307195333-5fe7a883aa19/go.mod h1:VzzqZJRnGkLBvHegQrXjBqPurQTc5/KpmUdxsrq26oE=
