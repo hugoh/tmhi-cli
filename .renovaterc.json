@@ -6,7 +6,7 @@
     ":automergeMinor",
     ":automergeDigest"
   ],
-  "schedule": ["on the first saturday of the month"]
+  "schedule": ["on the first saturday of the month"],
   "minimumReleaseAge": "7 days",
   "vulnerabilityAlerts": {
     "labels": ["security"],
