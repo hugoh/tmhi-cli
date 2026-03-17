@@ -89,7 +89,6 @@ func TestNokiaGateway_Reboot_Success(t *testing.T) {
 			Authenticated: true,
 		},
 		credentials: nokiaLoginData{
-			Success:   true,
 			SID:       "valid-sid",
 			CSRFToken: "valid-token",
 		},
@@ -136,7 +135,6 @@ func TestNokiaGateway_Reboot_DryRun(t *testing.T) {
 			Authenticated: true,
 		},
 		credentials: nokiaLoginData{
-			Success:   true,
 			SID:       "valid-sid",
 			CSRFToken: "valid-token",
 		},

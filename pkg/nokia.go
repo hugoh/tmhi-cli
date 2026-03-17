@@ -20,7 +20,6 @@ type nonceResp struct {
 }
 
 type nokiaLoginData struct {
-	Success   bool
 	SID       string
 	CSRFToken string
 }
