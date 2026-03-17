@@ -48,10 +48,8 @@ tasks:
   fmt:
     summary: Format the code
     cmds:
-      - goimports -w .
-      - go tool github.com/daixiang0/gci write .
       - go tool github.com/segmentio/golines -m 120 -w .
-      - go tool mvdan.cc/gofumpt -w .
+      - go tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint run --fix ./...
 
   tidy:
     summary: Tidy the module
@@ -69,6 +67,13 @@ tasks:
     cmds:
       - go mod tidy -diff
       - go tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint run ./...
+
+  ci:
+    summary: Run CI checks (lint, test, coverage)
+    cmds:
+      - task: lint
+      - task: test
+      - task: covercheck
 
   test:
     summary: Run tests
