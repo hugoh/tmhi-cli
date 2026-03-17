@@ -14,6 +14,10 @@ var (
 	ErrMissingCredentials = errors.New("missing required credentials")
 )
 
+// getGateway returns a gateway instance based on the model type.
+// Returns interface because this is a factory function that creates
+// different concrete types (ArcadyanGateway, NokiaGateway) based on input.
+//
 //nolint:ireturn
 func getGateway(version, model, username, password, ip string, timeout time.Duration, retries int, debug bool,
 ) (pkg.GatewayI, error) {
