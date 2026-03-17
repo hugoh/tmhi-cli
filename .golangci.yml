@@ -4,10 +4,11 @@ linters:
   disable:
     - depguard
     - exhaustruct
-    - godot
     - godox
     - nlreturn
     - noinlineerr
+    - paralleltest
+    - testpackage
     - varnamelen
     - wsl
     - wsl_v5
@@ -18,9 +19,6 @@ linters:
     generated: lax
     paths:
       - _test\.go
-      - third_party$
-      - builtin$
-      - examples$
 formatters:
   enable:
     - gci
@@ -29,11 +27,3 @@ formatters:
     - goimports
   exclusions:
     generated: lax
-    presets:
-      - common-false-positives
-      - std-error-handling
-    paths:
-      - _test\.go
-      - third_party$
-      - builtin$
-      - examples$
