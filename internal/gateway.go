@@ -9,10 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	ErrUnknownGateway     = errors.New("unknown gateway")
-	ErrMissingCredentials = errors.New("missing required credentials")
-)
+var ErrUnknownGateway = errors.New("unknown gateway")
 
 // getGateway returns a gateway instance based on the model type.
 // Returns interface because this is a factory function that creates
