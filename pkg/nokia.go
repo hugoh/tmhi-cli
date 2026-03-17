@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// NokiaGateway implements Gateway for Nokia-based T-Mobile gateways.
 type NokiaGateway struct {
 	*GatewayCommon
 
@@ -31,6 +32,7 @@ type nokiaLoginResp struct {
 	CsrfToken string `json:"token"`
 }
 
+// NewNokiaGateway creates a new Nokia gateway instance.
 func NewNokiaGateway() *NokiaGateway {
 	return &NokiaGateway{GatewayCommon: &GatewayCommon{}}
 }
@@ -39,6 +41,7 @@ func (l *nokiaLoginResp) success() bool {
 	return l.Sid != "" && l.CsrfToken != ""
 }
 
+// Login authenticates with the Nokia gateway.
 func (n *NokiaGateway) Login() error {
 	if n.Authenticated {
 		return nil
@@ -60,6 +63,7 @@ func (n *NokiaGateway) Login() error {
 	return nil
 }
 
+// Reboot restarts the Nokia gateway. If dryRun is true, it logs without executing.
 func (n *NokiaGateway) Reboot(dryRun bool) error {
 	if err := n.Login(); err != nil {
 		return fmt.Errorf("cannot reboot without successful login flow: %w", err)
@@ -104,14 +108,17 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 	return nil
 }
 
+// Request is not implemented for Nokia gateway.
 func (n *NokiaGateway) Request(_, _ string) error {
 	return ErrNotImplemented
 }
 
+// Info is not implemented for Nokia gateway.
 func (n *NokiaGateway) Info() error {
 	return ErrNotImplemented
 }
 
+// Status checks and displays the gateway connection status.
 func (n *NokiaGateway) Status() error {
 	n.StatusCore()
 	return nil

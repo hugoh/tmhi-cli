@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ErrUnknownGateway is returned when an unsupported gateway model is specified.
 var ErrUnknownGateway = errors.New("unknown gateway")
 
 // getGateway returns a gateway instance based on the model type.

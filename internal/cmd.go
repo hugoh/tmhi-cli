@@ -1,3 +1,4 @@
+// Package internal provides CLI command handling for tmhi-cli.
 package internal
 
 import (
@@ -19,12 +20,14 @@ const (
 	gatewayContextKey contextKey = "gateway"
 )
 
+// Gateway model constants.
 const (
 	ARCADYAN       string        = "ARCADYAN"
 	NOK5G21        string        = "NOK5G21"
 	DefaultTimeout time.Duration = 5 * time.Second
 )
 
+// Configuration flag names.
 const (
 	ConfigDryRun   string = "dry-run"
 	ConfigConfig   string = "config"
@@ -39,6 +42,7 @@ const (
 	ConfigRetries  string = "retries"
 )
 
+// LogSetup configures logrus log level based on debug flag.
 func LogSetup(debugFlag bool) {
 	if debugFlag {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -65,6 +69,7 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 	return newCtx, nil
 }
 
+// Login handles the login CLI command.
 func Login(ctx context.Context, _ *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	err := gateway.Login()
@@ -76,6 +81,7 @@ func Login(ctx context.Context, _ *cli.Command) error {
 	return nil
 }
 
+// Req handles the req CLI command for custom HTTP requests.
 func Req(ctx context.Context, cmd *cli.Command) error {
 	const requiredArgsCount = 2
 	if cmd.NArg() != requiredArgsCount {
@@ -97,6 +103,7 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
+// Info handles the info CLI command.
 func Info(ctx context.Context, _ *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if err := gateway.Info(); err != nil {
@@ -105,6 +112,7 @@ func Info(ctx context.Context, _ *cli.Command) error {
 	return nil
 }
 
+// Status handles the status CLI command.
 func Status(ctx context.Context, _ *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if err := gateway.Status(); err != nil {
@@ -114,6 +122,7 @@ func Status(ctx context.Context, _ *cli.Command) error {
 	return nil
 }
 
+// Reboot handles the reboot CLI command.
 func Reboot(ctx context.Context, cmd *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	err := gateway.Reboot(cmd.Bool(ConfigDryRun))
@@ -232,6 +241,7 @@ func buildCommands() []*cli.Command {
 	}
 }
 
+// Cmd is the main entry point for the CLI application.
 func Cmd(version string) {
 	var configFile string
 	configSource := altsrc.NewStringPtrSourcer(&configFile)

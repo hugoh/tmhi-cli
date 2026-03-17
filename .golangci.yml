@@ -16,11 +16,6 @@ linters:
       check-blank: true
   exclusions:
     generated: lax
-    presets:
-      - comments
-      - common-false-positives
-      - legacy
-      - std-error-handling
     paths:
       - _test\.go
       - third_party$
@@ -34,6 +29,9 @@ formatters:
     - goimports
   exclusions:
     generated: lax
+    presets:
+      - common-false-positives
+      - std-error-handling
     paths:
       - _test\.go
       - third_party$

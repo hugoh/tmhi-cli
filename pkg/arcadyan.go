@@ -1,3 +1,4 @@
+// Package pkg provides gateway implementations for T-Mobile Home Internet devices.
 package pkg
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ArcadyanGateway implements Gateway for Arcadyan-based T-Mobile gateways.
 type ArcadyanGateway struct {
 	*GatewayCommon
 
@@ -21,14 +23,17 @@ type arcadianLoginData struct {
 	Token      string
 }
 
+// InfoURL is the endpoint for gateway information.
 const InfoURL = "/TMI/v1/gateway/?get=all"
 
+// NewArcadyanGateway creates a new Arcadyan gateway instance.
 func NewArcadyanGateway() *ArcadyanGateway {
 	ret := &ArcadyanGateway{GatewayCommon: NewGatewayCommon()}
 	ret.Client.SetHeader("Accept", "application/json")
 	return ret
 }
 
+// Login authenticates with the Arcadyan gateway.
 func (a *ArcadyanGateway) Login() error {
 	if a.isLoggedIn() {
 		return nil
@@ -79,6 +84,7 @@ func (a *ArcadyanGateway) Login() error {
 	return nil
 }
 
+// Reboot restarts the Arcadyan gateway. If dryRun is true, it logs without executing.
 func (a *ArcadyanGateway) Reboot(dryRun bool) error {
 	err := a.Login()
 	if err != nil {
@@ -109,10 +115,12 @@ func (a *ArcadyanGateway) Reboot(dryRun bool) error {
 	return nil
 }
 
+// Info retrieves and displays gateway information.
 func (a *ArcadyanGateway) Info() error {
 	return a.Request("GET", InfoURL)
 }
 
+// Request makes an HTTP request to the gateway and displays the response.
 func (a *ArcadyanGateway) Request(method, path string) error {
 	logrus.WithFields(logrus.Fields{
 		"method": method,
@@ -137,6 +145,7 @@ func (a *ArcadyanGateway) Request(method, path string) error {
 	return nil
 }
 
+// Status checks and displays the gateway connection status.
 func (a *ArcadyanGateway) Status() error {
 	a.StatusCore()
 

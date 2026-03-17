@@ -1,3 +1,4 @@
+// Package testutil provides testing utilities for tmhi-cli.
 package testutil
 
 import (
@@ -7,6 +8,7 @@ import (
 	"testing"
 )
 
+// CaptureStdout captures stdout during fn execution and returns it.
 func CaptureStdout(tb testing.TB, fn func()) string {
 	tb.Helper()
 	old := os.Stdout
