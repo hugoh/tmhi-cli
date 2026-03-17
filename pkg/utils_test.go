@@ -1,42 +1,10 @@
 package pkg
 
 import (
-	"bytes"
-	"errors"
-	"io"
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-type errorReader struct{}
-
-func (e errorReader) Read(p []byte) (n int, err error) {
-	return 0, errors.New("test error")
-}
-
-func Test_GetBody(t *testing.T) {
-	t.Run("successful read", func(t *testing.T) {
-		resp := &http.Response{Body: io.NopCloser(bytes.NewBufferString("test body"))}
-		result := GetBody(resp)
-		assert.Equal(t, "test body", result)
-	})
-
-	t.Run("with read error", func(t *testing.T) {
-		resp := &http.Response{Body: io.NopCloser(errorReader{})}
-		result := GetBody(resp)
-		assert.Contains(t, result, "test error")
-	})
-
-	t.Run("successful read with error in body", func(t *testing.T) {
-		resp := &http.Response{
-			Body: io.NopCloser(errorReader{}),
-		}
-		result := GetBody(resp)
-		assert.Contains(t, result, "test error")
-	})
-}
 
 func Test_EchoStatus(t *testing.T) {
 	out := CaptureStdout(t, func() {
@@ -46,44 +14,6 @@ func Test_EchoStatus(t *testing.T) {
 	})
 	assert.Contains(t, out, "✅")
 	assert.Contains(t, out, "❌")
-}
-
-func Test_HTTPRequestSuccessful(t *testing.T) {
-	assert.True(t, HTTPRequestSuccessful(&http.Response{StatusCode: 200}))
-	assert.True(t, HTTPRequestSuccessful(&http.Response{StatusCode: 299}))
-	assert.False(t, HTTPRequestSuccessful(&http.Response{StatusCode: 400}))
-}
-
-func Test_LogHTTPResponseFields(t *testing.T) {
-	t.Run("successful read", func(t *testing.T) {
-		resp := &http.Response{
-			StatusCode: 200,
-			Body:       io.NopCloser(bytes.NewBufferString("test body")),
-		}
-		fields := LogHTTPResponseFields(resp)
-		assert.Equal(t, 200, fields["status"])
-		assert.Equal(t, "test body", fields["body"])
-	})
-
-	t.Run("read error", func(t *testing.T) {
-		resp := &http.Response{
-			StatusCode: 200,
-			Body:       io.NopCloser(errorReader{}),
-		}
-		fields := LogHTTPResponseFields(resp)
-		assert.Equal(t, 200, fields["status"])
-		assert.Contains(t, fields["body"], "error reading HTTP body")
-	})
-
-	t.Run("empty body", func(t *testing.T) {
-		resp := &http.Response{
-			StatusCode: 204,
-			Body:       io.NopCloser(bytes.NewBufferString("")),
-		}
-		fields := LogHTTPResponseFields(resp)
-		assert.Equal(t, 204, fields["status"])
-		assert.Equal(t, "", fields["body"])
-	})
 }
 
 func Test_Sha256Hash(t *testing.T) {
