@@ -7,6 +7,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+// Gateway defines the interface for T-Mobile gateway implementations.
 type Gateway interface {
 	NewClient(version, ip string, timeout time.Duration, retries int, debug bool)
 	AddCredentials(username, password string)
@@ -17,6 +18,7 @@ type Gateway interface {
 	Status() error
 }
 
+// GatewayCommon provides shared functionality for gateway implementations.
 type GatewayCommon struct {
 	Client        *resty.Client
 	Username      string
@@ -24,16 +26,22 @@ type GatewayCommon struct {
 	Authenticated bool
 }
 
+// Sentinel errors for gateway operations.
 var (
+	// ErrAuthentication indicates an authentication failure.
 	ErrAuthentication = errors.New("could not authenticate")
+	// ErrNotImplemented indicates an unsupported operation.
 	ErrNotImplemented = errors.New("command not implemented")
-	ErrRebootFailed   = errors.New("reboot failed")
+	// ErrRebootFailed indicates a reboot operation failed.
+	ErrRebootFailed = errors.New("reboot failed")
 )
 
+// NewGatewayCommon creates a new GatewayCommon with default client.
 func NewGatewayCommon() *GatewayCommon {
 	return &GatewayCommon{Client: resty.New()}
 }
 
+// NewClient configures the HTTP client for the gateway.
 func (gc *GatewayCommon) NewClient(version, ip string, timeout time.Duration, retries int, debug bool) {
 	if gc.Client == nil {
 		gc.Client = resty.New()
@@ -48,11 +56,13 @@ func (gc *GatewayCommon) NewClient(version, ip string, timeout time.Duration, re
 	}
 }
 
+// StatusCore checks if the gateway web interface is accessible.
 func (gc *GatewayCommon) StatusCore() {
 	resp, err := gc.Client.R().Head("/")
 	EchoStatus("Web interface up", err == nil && resp.IsSuccess())
 }
 
+// AddCredentials sets the username and password for gateway authentication.
 func (gc *GatewayCommon) AddCredentials(username, password string) {
 	gc.Username = username
 	gc.Password = password
