@@ -20,9 +20,9 @@ var (
 //
 //nolint:ireturn
 func getGateway(version, model, username, password, ip string, timeout time.Duration, retries int, debug bool,
-) (pkg.GatewayI, error) {
+) (pkg.Gateway, error) {
 	LogSetup(debug)
-	var gateway pkg.GatewayI
+	var gateway pkg.Gateway
 	switch model {
 	case "ARCADYAN":
 		gateway = pkg.NewArcadyanGateway()
