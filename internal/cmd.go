@@ -124,23 +124,22 @@ func Reboot(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func Cmd(version string) { //nolint:funlen
-	var configFile string
-
+func defaultConfigPath() string {
 	home, err := os.UserHomeDir()
-	defaultConfig := ".tmhi-cli.toml"
-	if err == nil {
-		defaultConfig = home + "/" + defaultConfig
+	if err != nil {
+		return ".tmhi-cli.toml"
 	}
-	configSource := altsrc.NewStringPtrSourcer(&configFile)
+	return home + "/.tmhi-cli.toml"
+}
 
-	flags := []cli.Flag{
+func buildFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        ConfigConfig,
 			Aliases:     []string{"c"},
 			Usage:       "use the specified TOML configuration file",
-			Value:       defaultConfig,
-			Destination: &configFile,
+			Value:       defaultConfigPath(),
+			Destination: configFile,
 			TakesFile:   true,
 		},
 		&cli.BoolFlag{
@@ -192,7 +191,10 @@ func Cmd(version string) { //nolint:funlen
 			Usage:   "request timeout in seconds",
 		},
 	}
-	commands := []*cli.Command{
+}
+
+func buildCommands() []*cli.Command {
+	return []*cli.Command{
 		{
 			Name:   "login",
 			Usage:  "Verify that the credentials can log the tool in",
@@ -228,13 +230,18 @@ func Cmd(version string) { //nolint:funlen
 			Action: Req,
 		},
 	}
+}
+
+func Cmd(version string) {
+	var configFile string
+	configSource := altsrc.NewStringPtrSourcer(&configFile)
 
 	app := &cli.Command{
 		Name:     "tmhi-cli",
 		Usage:    "Utility to interact with T-Mobile Home Internet gateway",
 		Version:  version,
-		Flags:    flags,
-		Commands: commands,
+		Flags:    buildFlags(&configFile, configSource),
+		Commands: buildCommands(),
 		Before:   commonContext,
 	}
 

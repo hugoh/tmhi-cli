@@ -21,12 +21,34 @@ func TestLogSetup(t *testing.T) {
 	})
 }
 
+func TestDefaultConfigPath(t *testing.T) {
+	path := defaultConfigPath()
+	assert.NotEmpty(t, path)
+	assert.Contains(t, path, ".tmhi-cli.toml")
+}
+
+func TestBuildFlags(t *testing.T) {
+	var configFile string
+	flags := buildFlags(&configFile, nil)
+
+	assert.Len(t, flags, 9)
+}
+
+func TestBuildCommands(t *testing.T) {
+	commands := buildCommands()
+
+	assert.Len(t, commands, 5)
+	assert.Equal(t, "login", commands[0].Name)
+	assert.Equal(t, "reboot", commands[1].Name)
+	assert.Equal(t, "info", commands[2].Name)
+	assert.Equal(t, "status", commands[3].Name)
+	assert.Equal(t, "req", commands[4].Name)
+}
+
 func TestCmd_Help(t *testing.T) {
-	// Prevent logrus Fatal from exiting the test process
 	restore, _ := WithPatchedLogrusExit(t)
 	defer restore()
 
-	// Preserve and set args
 	oldArgs := os.Args
 	os.Args = []string{"tmhi-cli", "--help"}
 	defer func() { os.Args = oldArgs }()
@@ -39,11 +61,9 @@ func TestCmd_Help(t *testing.T) {
 }
 
 func TestCmd_Version(t *testing.T) {
-	// Prevent logrus Fatal from exiting the test process
 	restore, _ := WithPatchedLogrusExit(t)
 	defer restore()
 
-	// Preserve and set args
 	oldArgs := os.Args
 	os.Args = []string{"tmhi-cli", "--version"}
 	defer func() { os.Args = oldArgs }()
