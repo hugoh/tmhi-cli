@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// mockRoundTripper implements http.RoundTripper for testing
+// mockRoundTripper implements http.RoundTripper for testing.
 type mockRoundTripper struct {
 	resp *http.Response
 	err  error
