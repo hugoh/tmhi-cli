@@ -48,11 +48,6 @@ func TestNewGatewayCommon(t *testing.T) {
 	assert.True(t, gc.Client.Debug)
 }
 
-func TestAuthenticationError(t *testing.T) {
-	err := AuthenticationError("test error")
-	assert.ErrorContains(t, err, "could not authenticate: test error")
-}
-
 func TestAddCredentials(t *testing.T) {
 	gc := NewGatewayCommon()
 	gc.AddCredentials("admin", "password")

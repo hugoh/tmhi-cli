@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -30,10 +29,6 @@ var (
 	ErrNotImplemented = errors.New("command not implemented")
 	ErrRebootFailed   = errors.New("reboot failed")
 )
-
-func AuthenticationError(details string) error {
-	return fmt.Errorf("%w: %s", ErrAuthentication, details)
-}
 
 func NewGatewayCommon() *GatewayCommon {
 	return &GatewayCommon{Client: resty.New()}

@@ -59,7 +59,7 @@ func TestNokiaGateway_getCredentials_ErrorResponse(t *testing.T) {
 
 		_, err := gw.getCredentials(nonceResp{Nonce: "test"})
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "authentication")
+		assert.ErrorIs(t, err, ErrAuthentication)
 	})
 
 	t.Run("invalid credentials", func(t *testing.T) {
@@ -75,7 +75,7 @@ func TestNokiaGateway_getCredentials_ErrorResponse(t *testing.T) {
 
 		_, err := gw.getCredentials(nonceResp{Nonce: "test"})
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "authentication")
+		assert.ErrorIs(t, err, ErrAuthentication)
 	})
 }
 
@@ -125,7 +125,7 @@ func TestNokiaGateway_getNonce_ErrorResponse(t *testing.T) {
 
 	_, err := gw.getNonce()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "authentication")
+	assert.ErrorIs(t, err, ErrAuthentication)
 }
 
 func TestNokiaGateway_Reboot_DryRun(t *testing.T) {

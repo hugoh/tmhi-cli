@@ -62,11 +62,11 @@ func (a *ArcadyanGateway) Login() error {
 	}
 
 	if resp.IsError() {
-		return AuthenticationError(fmt.Sprintf("unexpected status %d: %s", resp.StatusCode(), resp.String()))
+		return fmt.Errorf("%w: unexpected status %d: %s", ErrAuthentication, resp.StatusCode(), resp.String())
 	}
 
 	if loginResp.Auth.Token == "" {
-		return AuthenticationError("login response missing auth token")
+		return fmt.Errorf("%w: login response missing auth token", ErrAuthentication)
 	}
 
 	a.credentials = arcadianLoginData{

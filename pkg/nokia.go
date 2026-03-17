@@ -144,14 +144,14 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 		Post(reqURL)
 	if err != nil {
 		logrus.WithError(err).Error("error while making login request")
-		return nil, AuthenticationError("authentication failed: " + err.Error())
+		return nil, fmt.Errorf("%w: %w", ErrAuthentication, err)
 	}
 	if resp.IsError() {
 		logrus.WithFields(logrus.Fields{
 			"status": resp.StatusCode(),
 			"body":   resp.String(),
 		}).Error("error while making login request")
-		return nil, AuthenticationError("authentication failed: " + resp.String())
+		return nil, fmt.Errorf("%w: status %d: %s", ErrAuthentication, resp.StatusCode(), resp.String())
 	}
 
 	logrus.WithField("response", loginResp).Debug("got login response")
@@ -159,7 +159,7 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 	if loginResp.success() {
 		authErr = nil
 	} else {
-		authErr = AuthenticationError("authentication failed: no valid credentials returned")
+		authErr = fmt.Errorf("%w: no valid credentials returned", ErrAuthentication)
 	}
 	return &loginResp, authErr
 }
@@ -173,7 +173,7 @@ func (n *NokiaGateway) getNonce() (*nonceResp, error) {
 		return nil, fmt.Errorf("error getting nonce: %w", err)
 	}
 	if resp.IsError() {
-		return nil, AuthenticationError("authentication failed: " + resp.String())
+		return nil, fmt.Errorf("%w: status %d: %s", ErrAuthentication, resp.StatusCode(), resp.String())
 	}
 	logrus.WithField("nonce", nonceResp.Nonce).Debug("got nonce")
 	return &nonceResp, nil
