@@ -66,7 +66,7 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 }
 
 func Login(ctx context.Context, _ *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	err := gateway.Login()
 	if err != nil {
 		logrus.WithError(err).Fatal("could not log in")
@@ -85,7 +85,7 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 	path := cmd.Args().Get(1)
 	loginFirst := cmd.Bool("login")
 
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if loginFirst {
 		if err := gateway.Login(); err != nil {
 			return fmt.Errorf("request failed: %w", err)
@@ -98,7 +98,7 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 }
 
 func Info(ctx context.Context, _ *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if err := gateway.Info(); err != nil {
 		return fmt.Errorf("info command failed: %w", err)
 	}
@@ -106,7 +106,7 @@ func Info(ctx context.Context, _ *cli.Command) error {
 }
 
 func Status(ctx context.Context, _ *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if err := gateway.Status(); err != nil {
 		logrus.WithError(err).Error("status check failed")
 		return fmt.Errorf("status check failed: %w", err)
@@ -115,7 +115,7 @@ func Status(ctx context.Context, _ *cli.Command) error {
 }
 
 func Reboot(ctx context.Context, cmd *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.GatewayI)
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	err := gateway.Reboot(cmd.Bool(ConfigDryRun))
 	if err != nil {
 		logrus.WithError(err).Error("could not reboot gateway")

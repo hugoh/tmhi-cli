@@ -8,7 +8,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-type GatewayI interface {
+type Gateway interface {
 	NewClient(version, ip string, timeout time.Duration, retries int, debug bool)
 	AddCredentials(username, password string)
 	Login() error
