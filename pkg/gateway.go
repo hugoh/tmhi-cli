@@ -39,27 +39,26 @@ func NewGatewayCommon() *GatewayCommon {
 	return &GatewayCommon{Client: resty.New()}
 }
 
-func (gatewayCommon *GatewayCommon) NewClient(version, ip string, timeout time.Duration, retries int, debug bool) {
-	if gatewayCommon.Client == nil {
-		gatewayCommon.Client = resty.New()
+func (gc *GatewayCommon) NewClient(version, ip string, timeout time.Duration, retries int, debug bool) {
+	if gc.Client == nil {
+		gc.Client = resty.New()
 	}
-	gatewayCommon.Client.
+	gc.Client.
 		SetBaseURL("http://"+ip).
 		SetHeader("User-Agent", "tmhi-cli/"+version).
 		SetDebug(debug).
 		SetTimeout(timeout)
 	if retries > 0 {
-		gatewayCommon.Client.SetRetryCount(retries)
+		gc.Client.SetRetryCount(retries)
 	}
 }
 
-func (gatewayCommon *GatewayCommon) StatusCore() {
-	// Web interface
-	resp, err := gatewayCommon.Client.R().Head("/")
+func (gc *GatewayCommon) StatusCore() {
+	resp, err := gc.Client.R().Head("/")
 	EchoStatus("Web interface up", err == nil && resp.IsSuccess())
 }
 
-func (gatewayCommon *GatewayCommon) AddCredentials(username, password string) {
-	gatewayCommon.Username = username
-	gatewayCommon.Password = password
+func (gc *GatewayCommon) AddCredentials(username, password string) {
+	gc.Username = username
+	gc.Password = password
 }
