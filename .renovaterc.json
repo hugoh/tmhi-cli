@@ -4,9 +4,9 @@
     "config:recommended",
     ":automergeLinters",
     ":automergeMinor",
-    ":automergeDigest"
+    ":automergeDigest",
+    "schedule:monthly"
   ],
-  "schedule": ["* * 1-7 * 6"],
   "minimumReleaseAge": "7 days",
   "vulnerabilityAlerts": {
     "labels": ["security"],
