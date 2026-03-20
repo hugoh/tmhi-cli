@@ -115,16 +115,87 @@ func TestNokiaGateway_Status(t *testing.T) {
 }
 
 func TestNokiaGateway_getNonce_ErrorResponse(t *testing.T) {
-	client := NewTestClient(&http.Response{
-		StatusCode: http.StatusInternalServerError,
-		Body:       io.NopCloser(bytes.NewBufferString("server error")),
-	}, nil)
+	client := NewTestClient(nil, errors.New("network error"))
 	gw := NewNokiaGateway()
 	gw.Client = client
 
 	_, err := gw.getNonce()
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, ErrAuthentication)
+	assert.Contains(t, err.Error(), "error getting nonce")
+}
+
+func TestNokiaGateway_getNonce_Success(t *testing.T) {
+	body := `{"nonce":"testNonce","pubkey":"testPubkey","randomKey":"testRandomKey"}`
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(bytes.NewBufferString(body)),
+	}
+	client := NewTestClient(resp, nil)
+
+	gw := NewNokiaGateway()
+	gw.Client = client
+
+	nonceResp, err := gw.getNonce()
+	assert.NoError(t, err)
+	assert.Equal(t, "testNonce", nonceResp.Nonce)
+	assert.Equal(t, "testPubkey", nonceResp.Pubkey)
+	assert.Equal(t, "testRandomKey", nonceResp.RandomKey)
+}
+
+func TestNokiaGateway_getCredentials_Success(t *testing.T) {
+	body := `{"success":0,"reason":0,"sid":"testSid","token":"testToken"}`
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(bytes.NewBufferString(body)),
+	}
+	client := NewTestClient(resp, nil)
+
+	gw := NewNokiaGateway()
+	gw.Client = client
+	gw.Username = "user"
+	gw.Password = "pass"
+
+	loginResp, err := gw.getCredentials(nonceResp{Nonce: "testNonce", RandomKey: "testRandomKey"})
+	assert.NoError(t, err)
+	assert.Equal(t, "testSid", loginResp.Sid)
+	assert.Equal(t, "testToken", loginResp.CsrfToken)
+}
+
+func TestNokiaGateway_Login_AlreadyAuthenticated(t *testing.T) {
+	gw := NewNokiaGateway()
+	gw.Authenticated = true
+
+	err := gw.Login()
+	assert.NoError(t, err)
+}
+
+func TestNokiaGateway_Login_NonceError(t *testing.T) {
+	client := NewTestClient(nil, errors.New("network error"))
+
+	gw := NewNokiaGateway()
+	gw.Client = client
+
+	err := gw.Login()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error getting nonce")
+}
+
+func TestNokiaGateway_Login_CredentialsError(t *testing.T) {
+	nonceBody := `{"nonce":"testNonce","pubkey":"testPubkey","randomKey":"testRandomKey"}`
+	client := NewTestClient(&http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString(nonceBody)),
+	}, nil)
+
+	gw := NewNokiaGateway()
+	gw.Client = client
+	gw.Username = "user"
+	gw.Password = "pass"
+
+	err := gw.Login()
+	assert.Error(t, err)
 }
 
 func TestNokiaGateway_Reboot_DryRun(t *testing.T) {

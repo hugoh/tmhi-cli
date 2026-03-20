@@ -1,9 +1,5 @@
 profile: cover.out
 
-threshold: # FIXME: this is really low right now
-  package: 60
-  total: 60
-
-exclude:
-  paths:
-    - ^main\.go$
+threshold:
+  package: 75
+  total: 75

@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -157,4 +158,15 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 		assert.True(t, mg.rebootCalled)
 		assert.False(t, mg.rebootDryRun)
 	}
+}
+
+func TestReq_LoginError(t *testing.T) {
+	restore, _ := WithPatchedLogrusExit(t)
+	defer restore()
+
+	oldArgs := os.Args
+	os.Args = []string{"tmhi-cli", "--gateway.model", "ARCADYAN", "--gateway.ip", "192.168.12.1", "req", "-l", "GET", "/test"}
+	defer func() { os.Args = oldArgs }()
+
+	Cmd("test-version")
 }

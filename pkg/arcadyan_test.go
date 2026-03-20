@@ -137,6 +137,42 @@ func TestArcadyanGateway_isLoggedIn(t *testing.T) {
 	})
 }
 
+func TestNewArcadyanGateway(t *testing.T) {
+	gw := NewArcadyanGateway()
+	assert.NotNil(t, gw)
+	assert.NotNil(t, gw.Client)
+	assert.Equal(t, "application/json", gw.Client.Header.Get("Accept"))
+}
+
+func TestArcadyanGateway_Status(t *testing.T) {
+	t.Run("successful status with registration info", func(t *testing.T) {
+		headResp := &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+		infoBody := `{"signal":{"generic":{"registration":"registered"}}}`
+		infoResp := jsonResponse(http.StatusOK, infoBody)
+		client := NewMultiTestClient([]*http.Response{headResp, infoResp}, []error{nil, nil})
+
+		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+		var err error
+		out := CaptureStdout(t, func() {
+			err = gw.Status()
+		})
+		assert.NoError(t, err)
+		assert.Contains(t, out, "Web interface up")
+		assert.Contains(t, out, "Registration status: registered")
+	})
+
+	t.Run("status with network error returns unknown", func(t *testing.T) {
+		headResp := &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+		client := NewMultiTestClient([]*http.Response{headResp}, []error{nil})
+
+		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+		err := gw.Status()
+		assert.Error(t, err)
+	})
+}
+
 func TestArcadyanGateway_Request_Methods(t *testing.T) {
 	t.Run("GET request", func(t *testing.T) {
 		client := NewTestClient(jsonResponse(http.StatusOK, `{"status": "ok"}`), nil)
