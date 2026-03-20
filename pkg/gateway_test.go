@@ -16,13 +16,35 @@ type mockRoundTripper struct {
 	err  error
 }
 
+type multiMockRoundTripper struct {
+	responses []*http.Response
+	errors    []error
+	callCount int
+}
+
 func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	return m.resp, m.err
+}
+
+func (m *multiMockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if m.callCount < len(m.responses) {
+		resp := m.responses[m.callCount]
+		err := m.errors[m.callCount]
+		m.callCount++
+		return resp, err
+	}
+	return nil, nil
 }
 
 func NewTestClient(resp *http.Response, err error) *resty.Client {
 	return resty.NewWithClient(&http.Client{
 		Transport: &mockRoundTripper{resp: resp, err: err},
+	})
+}
+
+func NewMultiTestClient(responses []*http.Response, errors []error) *resty.Client {
+	return resty.NewWithClient(&http.Client{
+		Transport: &multiMockRoundTripper{responses: responses, errors: errors},
 	})
 }
 

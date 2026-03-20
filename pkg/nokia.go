@@ -146,7 +146,7 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 	var loginResp nokiaLoginResp
 	resp, err := n.Client.R().
 		SetFormData(reqParams).
-		SetResult(loginResp).
+		SetResult(&loginResp).
 		Post(reqURL)
 	if err != nil {
 		logrus.WithError(err).Error("error while making login request")
@@ -171,16 +171,13 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 }
 
 func (n *NokiaGateway) getNonce() (*nonceResp, error) {
-	var nonceResp nonceResp
-	resp, err := n.Client.R().
-		SetResult(nonceResp).
+	var resp nonceResp
+	_, err := n.Client.R().
+		SetResult(&resp).
 		Get("/login_web_app.cgi?nonce")
 	if err != nil {
 		return nil, fmt.Errorf("error getting nonce: %w", err)
 	}
-	if resp.IsError() {
-		return nil, fmt.Errorf("%w: status %d: %s", ErrAuthentication, resp.StatusCode(), resp.String())
-	}
-	logrus.WithField("nonce", nonceResp.Nonce).Debug("got nonce")
-	return &nonceResp, nil
+	logrus.WithField("nonce", resp.Nonce).Debug("got nonce")
+	return &resp, nil
 }
