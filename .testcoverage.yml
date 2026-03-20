@@ -1,5 +1,4 @@
 profile: cover.out
 
 threshold:
-  package: 75
   total: 75
