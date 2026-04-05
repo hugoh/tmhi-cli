@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -169,6 +170,97 @@ func (a *ArcadyanGateway) Status() error {
 	EchoOut("Registration status: " + regStatus)
 
 	return nil
+}
+
+type signalData struct {
+	Bands []string `json:"bands"`
+	Bars  float64  `json:"bars"`
+	CID   int      `json:"cid"`
+	RSRP  int      `json:"rsrp"`
+	RSRQ  int      `json:"rsrq"`
+	RSSI  int      `json:"rssi"`
+	SINR  int      `json:"sinr"`
+}
+
+type fourGSignal struct {
+	signalData
+
+	ENBID int `json:"eNBID"` //nolint:tagliatelle
+}
+
+type fiveGSignal struct {
+	signalData
+
+	AntennaUsed string `json:"antennaUsed"`
+	GNBID       int    `json:"gNBID"` //nolint:tagliatelle
+}
+
+type signalResult struct {
+	FourG   *fourGSignal `json:"4g"`
+	FiveG   *fiveGSignal `json:"5g"`
+	Generic struct {
+		APN          string `json:"apn"`
+		HasIPv6      bool   `json:"hasIPv6"`
+		Registration string `json:"registration"`
+		Roaming      bool   `json:"roaming"`
+	} `json:"generic"`
+}
+
+// Signal retrieves and displays signal strength information.
+func (a *ArcadyanGateway) Signal() error {
+	var result struct {
+		Signal signalResult `json:"signal"`
+	}
+
+	info, err := a.Client.R().SetResult(&result).Get(InfoURL)
+	if err != nil {
+		return fmt.Errorf("failed to get signal info: %w", err)
+	}
+
+	if !info.IsSuccess() {
+		return fmt.Errorf("%w: status %d", ErrSignalFailed, info.StatusCode())
+	}
+
+	a.printSignalResult(result.Signal)
+
+	return nil
+}
+
+func (a *ArcadyanGateway) printSignalResult(sig signalResult) {
+	if sig.FourG != nil {
+		a.printSignalMetrics("4G LTE Signal", &sig.FourG.signalData, "eNBID: "+strconv.Itoa(sig.FourG.ENBID))
+	}
+
+	if sig.FiveG != nil {
+		var fiveGExtras []string
+		if sig.FiveG.AntennaUsed != "" {
+			fiveGExtras = append(fiveGExtras, "Antenna: "+sig.FiveG.AntennaUsed)
+		}
+		fiveGExtras = append(fiveGExtras, "gNBID: "+strconv.Itoa(sig.FiveG.GNBID))
+
+		a.printSignalMetrics("5G Signal", &sig.FiveG.signalData, fiveGExtras...)
+	}
+
+	EchoOut("")
+	EchoOut("=== Generic Info ===")
+	EchoOut("APN: " + sig.Generic.APN)
+	EchoOut(fmt.Sprintf("IPv6: %t", sig.Generic.HasIPv6))
+	EchoOut("Registration: " + sig.Generic.Registration)
+	EchoOut(fmt.Sprintf("Roaming: %t", sig.Generic.Roaming))
+}
+
+func (a *ArcadyanGateway) printSignalMetrics(header string, m *signalData, extras ...string) {
+	EchoOut(fmt.Sprintf("=== %s ===", header))
+	EchoOut(fmt.Sprintf("Signal bars: %.0f", m.Bars))
+	for _, extra := range extras {
+		EchoOut(extra)
+	}
+	EchoOut(fmt.Sprintf("Bands: %v", m.Bands))
+	EchoOut(fmt.Sprintf("RSRP: %d dBm", m.RSRP))
+	EchoOut(fmt.Sprintf("RSRQ: %d dB", m.RSRQ))
+	EchoOut(fmt.Sprintf("RSSI: %d dBm", m.RSSI))
+	EchoOut(fmt.Sprintf("SINR: %d dB", m.SINR))
+	EchoOut(fmt.Sprintf("CID: %d", m.CID))
 }
 
 func (a *ArcadyanGateway) isLoggedIn() bool {

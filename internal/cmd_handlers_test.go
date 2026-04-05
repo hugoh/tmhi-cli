@@ -23,6 +23,8 @@ type mockGateway struct {
 	rebootDryRun  bool
 	rebootErr     error
 	requestCalled bool
+	signalCalled  bool
+	signalErr     error
 }
 
 func (m *mockGateway) NewClient(_ string, _ string, _ time.Duration, _ int, _ bool) {}
@@ -51,6 +53,11 @@ func (m *mockGateway) Info() error {
 func (m *mockGateway) Status() error {
 	m.statusCalled = true
 	return m.statusErr
+}
+
+func (m *mockGateway) Signal() error {
+	m.signalCalled = true
+	return m.signalErr
 }
 
 func ctxWithGateway(mg *mockGateway) context.Context {
