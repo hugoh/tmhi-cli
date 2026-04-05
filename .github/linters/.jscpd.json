@@ -1,6 +1,0 @@
-{
-  "absolute": true,
-  "ignore": ["**/*_test.go", "/github/workspace/.github/linters/.golangci.yml"],
-  "reporters": ["consoleFull"],
-  "threshold": 0
-}
