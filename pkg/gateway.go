@@ -16,6 +16,7 @@ type Gateway interface {
 	Request(method, path string) error
 	Info() error
 	Status() error
+	Signal() error
 }
 
 // GatewayCommon provides shared functionality for gateway implementations.
@@ -34,6 +35,8 @@ var (
 	ErrNotImplemented = errors.New("command not implemented")
 	// ErrRebootFailed indicates a reboot operation failed.
 	ErrRebootFailed = errors.New("reboot failed")
+	// ErrSignalFailed indicates a signal operation failed.
+	ErrSignalFailed = errors.New("signal failed")
 )
 
 // NewGatewayCommon creates a new GatewayCommon with default client.

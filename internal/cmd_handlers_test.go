@@ -23,6 +23,8 @@ type mockGateway struct {
 	rebootDryRun  bool
 	rebootErr     error
 	requestCalled bool
+	signalCalled  bool
+	signalErr     error
 }
 
 func (m *mockGateway) NewClient(_ string, _ string, _ time.Duration, _ int, _ bool) {}
@@ -51,6 +53,11 @@ func (m *mockGateway) Info() error {
 func (m *mockGateway) Status() error {
 	m.statusCalled = true
 	return m.statusErr
+}
+
+func (m *mockGateway) Signal() error {
+	m.signalCalled = true
+	return m.signalErr
 }
 
 func ctxWithGateway(mg *mockGateway) context.Context {
@@ -169,4 +176,25 @@ func TestReq_LoginError(t *testing.T) {
 	defer func() { os.Args = oldArgs }()
 
 	Cmd("test-version")
+}
+
+func TestSignal_SuccessAndFailure(t *testing.T) {
+	// Success
+	{
+		mg := &mockGateway{}
+		ctx := ctxWithGateway(mg)
+		err := Signal(ctx, nil)
+		assert.NoError(t, err)
+		assert.True(t, mg.signalCalled)
+	}
+
+	// Failure
+	{
+		mg := &mockGateway{signalErr: errors.New("signal boom")}
+		ctx := ctxWithGateway(mg)
+		err := Signal(ctx, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "signal command failed")
+		assert.True(t, mg.signalCalled)
+	}
 }

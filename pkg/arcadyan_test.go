@@ -210,3 +210,166 @@ func TestArcadyanGateway_Request_Methods(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestArcadyanGateway_Signal(t *testing.T) {
+	t.Run("successful signal retrieval with 4g and 5g", func(t *testing.T) {
+		body := `{
+			"signal": {
+				"4g": {
+					"bands": ["b2"],
+					"bars": 4.0,
+					"cid": 12,
+					"eNBID": 310463,
+					"rsrp": -95,
+					"rsrq": -8,
+					"rssi": -85,
+					"sinr": 15
+				},
+				"5g": {
+					"antennaUsed": "Internal_directional",
+					"bands": ["n41"],
+					"bars": 5.0,
+					"cid": 311,
+					"gNBID": 1076984,
+					"rsrp": -84,
+					"rsrq": -10,
+					"rssi": -72,
+					"sinr": 28
+				},
+				"generic": {
+					"apn": "FBB.HOME",
+					"hasIPv6": true,
+					"registration": "registered",
+					"roaming": false
+				}
+			}
+		}`
+		client := NewTestClient(jsonResponse(http.StatusOK, body), nil)
+
+		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+		var err error
+		out := CaptureStdout(t, func() {
+			err = gw.Signal()
+		})
+		assert.NoError(t, err)
+		assert.Contains(t, out, "=== 4G LTE Signal ===")
+		assert.Contains(t, out, "Signal bars: 4")
+		assert.Contains(t, out, "Bands: [b2]")
+		assert.Contains(t, out, "RSRP: -95 dBm")
+		assert.Contains(t, out, "RSRQ: -8 dB")
+		assert.Contains(t, out, "RSSI: -85 dBm")
+		assert.Contains(t, out, "SINR: 15 dB")
+		assert.Contains(t, out, "CID: 12")
+		assert.Contains(t, out, "eNBID: 310463")
+		assert.Contains(t, out, "=== 5G Signal ===")
+		assert.Contains(t, out, "Signal bars: 5")
+		assert.Contains(t, out, "Antenna: Internal_directional")
+		assert.Contains(t, out, "Bands: [n41]")
+		assert.Contains(t, out, "RSRP: -84 dBm")
+		assert.Contains(t, out, "RSRQ: -10 dB")
+		assert.Contains(t, out, "RSSI: -72 dBm")
+		assert.Contains(t, out, "SINR: 28 dB")
+		assert.Contains(t, out, "CID: 311")
+		assert.Contains(t, out, "gNBID: 1076984")
+		assert.Contains(t, out, "=== Generic Info ===")
+		assert.Contains(t, out, "APN: FBB.HOME")
+		assert.Contains(t, out, "IPv6: true")
+		assert.Contains(t, out, "Registration: registered")
+		assert.Contains(t, out, "Roaming: false")
+	})
+
+	t.Run("successful signal retrieval 5g only", func(t *testing.T) {
+		body := `{
+			"signal": {
+				"5g": {
+					"antennaUsed": "",
+					"bands": ["n41"],
+					"bars": 5.0,
+					"cid": 311,
+					"gNBID": 1076984,
+					"rsrp": -84,
+					"rsrq": -10,
+					"rssi": -72,
+					"sinr": 28
+				},
+				"generic": {
+					"apn": "FBB.HOME",
+					"hasIPv6": true,
+					"registration": "registered",
+					"roaming": false
+				}
+			}
+		}`
+		client := NewTestClient(jsonResponse(http.StatusOK, body), nil)
+
+		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+		var err error
+		out := CaptureStdout(t, func() {
+			err = gw.Signal()
+		})
+		assert.NoError(t, err)
+		assert.NotContains(t, out, "=== 4G LTE Signal ===")
+		assert.Contains(t, out, "=== 5G Signal ===")
+		assert.Contains(t, out, "Signal bars: 5")
+		assert.Contains(t, out, "Bands: [n41]")
+		assert.NotContains(t, out, "Antenna:")
+	})
+
+	t.Run("successful signal retrieval 4g only", func(t *testing.T) {
+		body := `{
+			"signal": {
+				"4g": {
+					"bands": ["b2"],
+					"bars": 4.0,
+					"cid": 12,
+					"eNBID": 310463,
+					"rsrp": -95,
+					"rsrq": -8,
+					"rssi": -85,
+					"sinr": 15
+				},
+				"generic": {
+					"apn": "FBB.HOME",
+					"hasIPv6": true,
+					"registration": "registered",
+					"roaming": false
+				}
+			}
+		}`
+		client := NewTestClient(jsonResponse(http.StatusOK, body), nil)
+
+		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+		var err error
+		out := CaptureStdout(t, func() {
+			err = gw.Signal()
+		})
+		assert.NoError(t, err)
+		assert.Contains(t, out, "=== 4G LTE Signal ===")
+		assert.Contains(t, out, "Signal bars: 4")
+		assert.Contains(t, out, "eNBID: 310463")
+		assert.NotContains(t, out, "=== 5G Signal ===")
+	})
+
+	t.Run("signal with network error", func(t *testing.T) {
+		client := NewTestClient(nil, errors.New("network error"))
+
+		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+		err := gw.Signal()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get signal info")
+	})
+
+	t.Run("signal with non-200 status", func(t *testing.T) {
+		client := NewTestClient(jsonResponse(http.StatusInternalServerError, "{}"), nil)
+
+		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+		err := gw.Signal()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "signal failed")
+	})
+}

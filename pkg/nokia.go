@@ -124,6 +124,11 @@ func (n *NokiaGateway) Status() error {
 	return nil
 }
 
+// Signal is not implemented for Nokia gateway.
+func (n *NokiaGateway) Signal() error {
+	return ErrNotImplemented
+}
+
 func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, error) {
 	passHashInput := strings.ToLower(n.Password)
 	userPassHash := Sha256Hash(n.Username, passHashInput)

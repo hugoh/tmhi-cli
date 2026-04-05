@@ -37,12 +37,13 @@ func TestBuildFlags(t *testing.T) {
 func TestBuildCommands(t *testing.T) {
 	commands := buildCommands()
 
-	assert.Len(t, commands, 5)
+	assert.Len(t, commands, 6)
 	assert.Equal(t, "login", commands[0].Name)
 	assert.Equal(t, "reboot", commands[1].Name)
 	assert.Equal(t, "info", commands[2].Name)
 	assert.Equal(t, "status", commands[3].Name)
-	assert.Equal(t, "req", commands[4].Name)
+	assert.Equal(t, "signal", commands[4].Name)
+	assert.Equal(t, "req", commands[5].Name)
 }
 
 func TestCmd_Help(t *testing.T) {
