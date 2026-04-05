@@ -256,10 +256,10 @@ func (a *ArcadyanGateway) printSignalMetrics(header string, m *signalData, extra
 		EchoOut(extra)
 	}
 	EchoOut(fmt.Sprintf("Bands: %v", m.Bands))
-	EchoOut(fmt.Sprintf("RSRP: %d dBm", m.RSRP))
-	EchoOut(fmt.Sprintf("RSRQ: %d dB", m.RSRQ))
-	EchoOut(fmt.Sprintf("RSSI: %d dBm", m.RSSI))
-	EchoOut(fmt.Sprintf("SINR: %d dB", m.SINR))
+	EchoOut(FormatSignalMetric("RSRP", m.RSRP, "dBm", RateRSRP(m.RSRP)))
+	EchoOut(FormatSignalMetric("RSRQ", m.RSRQ, "dB", RateRSRQ(m.RSRQ)))
+	EchoOut(FormatSignalMetric("RSSI", m.RSSI, "dBm", RateRSSI(m.RSSI)))
+	EchoOut(FormatSignalMetric("SINR", m.SINR, "dB", RateSINR(m.SINR)))
 	EchoOut(fmt.Sprintf("CID: %d", m.CID))
 }
 
