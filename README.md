@@ -2,9 +2,7 @@
 
 ## Usage
 
-<!-- markdownlint-disable-next-line fenced-code-language -->
-
-```
+```text
 NAME:
    tmhi-cli - Utility to interact with T-Mobile Home Internet gateway
 
