@@ -122,6 +122,15 @@ func Status(ctx context.Context, _ *cli.Command) error {
 	return nil
 }
 
+// Signal handles the signal CLI command.
+func Signal(ctx context.Context, _ *cli.Command) error {
+	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
+	if err := gateway.Signal(); err != nil {
+		return fmt.Errorf("signal command failed: %w", err)
+	}
+	return nil
+}
+
 // Reboot handles the reboot CLI command.
 func Reboot(ctx context.Context, cmd *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
@@ -223,6 +232,11 @@ func buildCommands() []*cli.Command {
 			Name:   "status",
 			Usage:  "Check gateway status",
 			Action: Status,
+		},
+		{
+			Name:   "signal",
+			Usage:  "Display signal strength information",
+			Action: Signal,
 		},
 		{
 			Name:      "req",
