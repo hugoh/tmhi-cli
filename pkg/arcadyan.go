@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	signal "github.com/hugoh/cellular-signal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -250,16 +251,17 @@ func (a *ArcadyanGateway) printSignalResult(sig signalResult) {
 }
 
 func (a *ArcadyanGateway) printSignalMetrics(header string, m *signalData, extras ...string) {
+	rater := signal.NewRater()
 	EchoOut(fmt.Sprintf("=== %s ===", header))
 	EchoOut(fmt.Sprintf("Signal bars: %.0f", m.Bars))
 	for _, extra := range extras {
 		EchoOut(extra)
 	}
 	EchoOut(fmt.Sprintf("Bands: %v", m.Bands))
-	EchoOut(FormatSignalMetric("RSRP", m.RSRP, "dBm", RateRSRP(m.RSRP)))
-	EchoOut(FormatSignalMetric("RSRQ", m.RSRQ, "dB", RateRSRQ(m.RSRQ)))
-	EchoOut(FormatSignalMetric("RSSI", m.RSSI, "dBm", RateRSSI(m.RSSI)))
-	EchoOut(FormatSignalMetric("SINR", m.SINR, "dB", RateSINR(m.SINR)))
+	EchoOut(rater.Format(rater.RateRSRP(m.RSRP)))
+	EchoOut(rater.Format(rater.RateRSRQ(m.RSRQ)))
+	EchoOut(rater.Format(rater.RateRSSI(m.RSSI)))
+	EchoOut(rater.Format(rater.RateSINR(m.SINR)))
 	EchoOut(fmt.Sprintf("CID: %d", m.CID))
 }
 

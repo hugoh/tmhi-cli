@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/go-resty/resty/v2 v2.17.2
+	github.com/hugoh/cellular-signal v0.1.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli-altsrc/v3 v3.1.0

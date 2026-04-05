@@ -177,3 +177,24 @@ func TestReq_LoginError(t *testing.T) {
 
 	Cmd("test-version")
 }
+
+func TestSignal_SuccessAndFailure(t *testing.T) {
+	// Success
+	{
+		mg := &mockGateway{}
+		ctx := ctxWithGateway(mg)
+		err := Signal(ctx, nil)
+		assert.NoError(t, err)
+		assert.True(t, mg.signalCalled)
+	}
+
+	// Failure
+	{
+		mg := &mockGateway{signalErr: errors.New("signal boom")}
+		ctx := ctxWithGateway(mg)
+		err := Signal(ctx, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "signal command failed")
+		assert.True(t, mg.signalCalled)
+	}
+}
