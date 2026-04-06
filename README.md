@@ -1,5 +1,9 @@
 # tmhi-cli - CLI to control T-Mobile Home Internet gateway
 
+[![CI](https://github.com/hugoh/tmhi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/hugoh/tmhi-cli/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/hugoh/tmhi-cli/graph/badge.svg?token=9VA6Q2K9T1)](https://codecov.io/github/hugoh/tmhi-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hugoh/tmhi-cli)](https://goreportcard.com/report/github.com/hugoh/tmhi-cli)
+
 ## Usage
 
 ```text
