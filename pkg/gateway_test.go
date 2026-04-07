@@ -22,18 +22,20 @@ type multiMockRoundTripper struct {
 	callCount int
 }
 
-func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (m *mockRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
 	return m.resp, m.err
 }
 
-func (m *multiMockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (m *multiMockRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
 	if m.callCount < len(m.responses) {
 		resp := m.responses[m.callCount]
 		err := m.errors[m.callCount]
 		m.callCount++
+
 		return resp, err
 	}
-	return nil, nil
+
+	return nil, ErrNoResponse
 }
 
 func NewTestClient(resp *http.Response, err error) *resty.Client {
@@ -91,8 +93,11 @@ func TestGatewayCommon_StatusCore(t *testing.T) {
 			wantEmoji: "✅",
 		},
 		{
-			name:      "failed web interface status code",
-			resp:      &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody},
+			name: "failed web interface status code",
+			resp: &http.Response{
+				StatusCode: http.StatusInternalServerError,
+				Body:       http.NoBody,
+			},
 			err:       nil,
 			wantEmoji: "❌",
 		},

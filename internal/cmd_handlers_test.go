@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 )
 
@@ -31,32 +32,38 @@ func (m *mockGateway) NewClient(_ string, _ string, _ time.Duration, _ int, _ bo
 func (m *mockGateway) AddCredentials(_ string, _ string)                            {}
 func (m *mockGateway) Login() error {
 	m.loginCalled = true
+
 	return m.loginErr
 }
 
 func (m *mockGateway) Reboot(dryRun bool) error {
 	m.rebootCalled = true
 	m.rebootDryRun = dryRun
+
 	return m.rebootErr
 }
 
 func (m *mockGateway) Request(_ string, _ string) error {
 	m.requestCalled = true
+
 	return nil
 }
 
 func (m *mockGateway) Info() error {
 	m.infoCalled = true
+
 	return m.infoErr
 }
 
 func (m *mockGateway) Status() error {
 	m.statusCalled = true
+
 	return m.statusErr
 }
 
 func (m *mockGateway) Signal() error {
 	m.signalCalled = true
+
 	return m.signalErr
 }
 
@@ -85,7 +92,7 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{}
 		ctx := ctxWithGateway(mg)
 		err := Login(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, mg.loginCalled)
 		assert.Equal(t, 0, *exitCode, "should not exit on success")
 	}
@@ -95,7 +102,7 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{loginErr: errors.New("login failed")}
 		ctx := ctxWithGateway(mg)
 		err := Login(ctx, nil)
-		assert.NoError(t, err, "Login handler always returns nil")
+		require.NoError(t, err, "Login handler always returns nil")
 		assert.True(t, mg.loginCalled)
 		assert.Equal(t, 1, *exitCode, "expected fatal exit code to be 1 on error")
 	}
@@ -107,7 +114,7 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{}
 		ctx := ctxWithGateway(mg)
 		err := Info(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, mg.infoCalled)
 	}
 
@@ -116,7 +123,7 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{infoErr: errors.New("info boom")}
 		ctx := ctxWithGateway(mg)
 		err := Info(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "info command failed")
 		assert.True(t, mg.infoCalled)
 	}
@@ -128,7 +135,7 @@ func TestStatus_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{}
 		ctx := ctxWithGateway(mg)
 		err := Status(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, mg.statusCalled)
 	}
 
@@ -137,7 +144,7 @@ func TestStatus_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{statusErr: errors.New("status boom")}
 		ctx := ctxWithGateway(mg)
 		err := Status(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "status check failed")
 		assert.True(t, mg.statusCalled)
 	}
@@ -150,7 +157,7 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 		ctx := ctxWithGateway(mg)
 		cmd := newRebootCmd(true)
 		err := Reboot(ctx, cmd)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, mg.rebootCalled)
 		assert.True(t, mg.rebootDryRun)
 	}
@@ -161,7 +168,7 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 		ctx := ctxWithGateway(mg)
 		cmd := newRebootCmd(false)
 		err := Reboot(ctx, cmd)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.True(t, mg.rebootCalled)
 		assert.False(t, mg.rebootDryRun)
 	}
@@ -172,7 +179,17 @@ func TestReq_LoginError(t *testing.T) {
 	defer restore()
 
 	oldArgs := os.Args
-	os.Args = []string{"tmhi-cli", "--gateway.model", "ARCADYAN", "--gateway.ip", "192.168.12.1", "req", "-l", "GET", "/test"}
+	os.Args = []string{
+		"tmhi-cli",
+		"--gateway.model",
+		"ARCADYAN",
+		"--gateway.ip",
+		"192.168.12.1",
+		"req",
+		"-l",
+		"GET",
+		"/test",
+	}
 	defer func() { os.Args = oldArgs }()
 
 	Cmd("test-version")
@@ -184,7 +201,7 @@ func TestSignal_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{}
 		ctx := ctxWithGateway(mg)
 		err := Signal(ctx, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, mg.signalCalled)
 	}
 
@@ -193,7 +210,7 @@ func TestSignal_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{signalErr: errors.New("signal boom")}
 		ctx := ctxWithGateway(mg)
 		err := Signal(ctx, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "signal command failed")
 		assert.True(t, mg.signalCalled)
 	}

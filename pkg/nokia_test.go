@@ -9,6 +9,12 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	testUsername = "user"
+	testPassword = "pass"
 )
 
 func Test_LoginSuccess(t *testing.T) {
@@ -54,11 +60,11 @@ func TestNokiaGateway_getCredentials_ErrorResponse(t *testing.T) {
 
 		gw := NewNokiaGateway()
 		gw.Client = client
-		gw.Username = "user"
-		gw.Password = "pass"
+		gw.Username = testUsername
+		gw.Password = testPassword
 
 		_, err := gw.getCredentials(nonceResp{Nonce: "test"})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, ErrAuthentication)
 	})
 
@@ -74,7 +80,7 @@ func TestNokiaGateway_getCredentials_ErrorResponse(t *testing.T) {
 		gw.Password = "pass"
 
 		_, err := gw.getCredentials(nonceResp{Nonce: "test"})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.ErrorIs(t, err, ErrAuthentication)
 	})
 }
@@ -84,8 +90,8 @@ func TestNokiaGateway_Reboot_Success(t *testing.T) {
 	gw := &NokiaGateway{
 		GatewayCommon: &GatewayCommon{
 			Client:        client,
-			Username:      "user",
-			Password:      "pass",
+			Username:      testUsername,
+			Password:      testPassword,
 			Authenticated: true,
 		},
 		credentials: nokiaLoginData{
@@ -110,7 +116,7 @@ func TestNokiaGateway_Status(t *testing.T) {
 	out := CaptureStdout(t, func() {
 		err = gw.Status()
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Contains(t, out, "Web interface up")
 }
 
@@ -120,7 +126,7 @@ func TestNokiaGateway_getNonce_ErrorResponse(t *testing.T) {
 	gw.Client = client
 
 	_, err := gw.getNonce()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error getting nonce")
 }
 
@@ -137,7 +143,7 @@ func TestNokiaGateway_getNonce_Success(t *testing.T) {
 	gw.Client = client
 
 	nonceResp, err := gw.getNonce()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "testNonce", nonceResp.Nonce)
 	assert.Equal(t, "testPubkey", nonceResp.Pubkey)
 	assert.Equal(t, "testRandomKey", nonceResp.RandomKey)
@@ -154,11 +160,11 @@ func TestNokiaGateway_getCredentials_Success(t *testing.T) {
 
 	gw := NewNokiaGateway()
 	gw.Client = client
-	gw.Username = "user"
-	gw.Password = "pass"
+	gw.Username = testUsername
+	gw.Password = testPassword
 
 	loginResp, err := gw.getCredentials(nonceResp{Nonce: "testNonce", RandomKey: "testRandomKey"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "testSid", loginResp.Sid)
 	assert.Equal(t, "testToken", loginResp.CsrfToken)
 }
@@ -178,7 +184,7 @@ func TestNokiaGateway_Login_NonceError(t *testing.T) {
 	gw.Client = client
 
 	err := gw.Login()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error getting nonce")
 }
 
@@ -191,8 +197,8 @@ func TestNokiaGateway_Login_CredentialsError(t *testing.T) {
 
 	gw := NewNokiaGateway()
 	gw.Client = client
-	gw.Username = "user"
-	gw.Password = "pass"
+	gw.Username = testUsername
+	gw.Password = testPassword
 
 	err := gw.Login()
 	assert.Error(t, err)

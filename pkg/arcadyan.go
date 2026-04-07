@@ -32,6 +32,7 @@ const InfoURL = "/TMI/v1/gateway/?get=all"
 func NewArcadyanGateway() *ArcadyanGateway {
 	ret := &ArcadyanGateway{GatewayCommon: NewGatewayCommon()}
 	ret.Client.SetHeader("Accept", "application/json")
+
 	return ret
 }
 
@@ -69,7 +70,12 @@ func (a *ArcadyanGateway) Login() error {
 	}
 
 	if resp.IsError() {
-		return fmt.Errorf("%w: unexpected status %d: %s", ErrAuthentication, resp.StatusCode(), resp.String())
+		return fmt.Errorf(
+			"%w: unexpected status %d: %s",
+			ErrAuthentication,
+			resp.StatusCode(),
+			resp.String(),
+		)
 	}
 
 	if loginResp.Auth.Token == "" {
@@ -101,6 +107,7 @@ func (a *ArcadyanGateway) Reboot(dryRun bool) error {
 
 	if dryRun {
 		logrus.Info("Dry run - would send reboot request")
+
 		return nil
 	}
 
@@ -144,6 +151,7 @@ func (a *ArcadyanGateway) Request(method, path string) error {
 	} else {
 		EchoOut(string(body))
 	}
+
 	return nil
 }
 
@@ -229,7 +237,11 @@ func (a *ArcadyanGateway) Signal() error {
 
 func (a *ArcadyanGateway) printSignalResult(sig signalResult) {
 	if sig.FourG != nil {
-		a.printSignalMetrics("4G LTE Signal", &sig.FourG.signalData, "eNBID: "+strconv.Itoa(sig.FourG.ENBID))
+		a.printSignalMetrics(
+			"4G LTE Signal",
+			&sig.FourG.signalData,
+			"eNBID: "+strconv.Itoa(sig.FourG.ENBID),
+		)
 	}
 
 	if sig.FiveG != nil {
@@ -250,22 +262,23 @@ func (a *ArcadyanGateway) printSignalResult(sig signalResult) {
 	EchoOut(fmt.Sprintf("Roaming: %t", sig.Generic.Roaming))
 }
 
-func (a *ArcadyanGateway) printSignalMetrics(header string, m *signalData, extras ...string) {
+func (a *ArcadyanGateway) printSignalMetrics(header string, metrics *signalData, extras ...string) {
 	rater := signal.NewRater()
 	EchoOut(fmt.Sprintf("=== %s ===", header))
-	EchoOut(fmt.Sprintf("Signal bars: %.0f", m.Bars))
+	EchoOut(fmt.Sprintf("Signal bars: %.0f", metrics.Bars))
 	for _, extra := range extras {
 		EchoOut(extra)
 	}
-	EchoOut(fmt.Sprintf("Bands: %v", m.Bands))
-	EchoOut(rater.Format(rater.RateRSRP(m.RSRP)))
-	EchoOut(rater.Format(rater.RateRSRQ(m.RSRQ)))
-	EchoOut(rater.Format(rater.RateRSSI(m.RSSI)))
-	EchoOut(rater.Format(rater.RateSINR(m.SINR)))
-	EchoOut(fmt.Sprintf("CID: %d", m.CID))
+	EchoOut(fmt.Sprintf("Bands: %v", metrics.Bands))
+	EchoOut(rater.Format(rater.RateRSRP(metrics.RSRP)))
+	EchoOut(rater.Format(rater.RateRSRQ(metrics.RSRQ)))
+	EchoOut(rater.Format(rater.RateRSSI(metrics.RSSI)))
+	EchoOut(rater.Format(rater.RateSINR(metrics.SINR)))
+	EchoOut(fmt.Sprintf("CID: %d", metrics.CID))
 }
 
 func (a *ArcadyanGateway) isLoggedIn() bool {
 	now := int(time.Now().Unix())
+
 	return a.credentials.Token != "" && a.credentials.Expiration > now
 }

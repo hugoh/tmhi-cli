@@ -6,6 +6,8 @@ import (
 	"github.com/hugoh/tmhi-cli/testutil"
 )
 
-func CaptureStdout(t testing.TB, fn func()) string {
-	return testutil.CaptureStdout(t, fn)
+func CaptureStdout(tb testing.TB, fn func()) string {
+	tb.Helper()
+
+	return testutil.CaptureStdout(tb, fn)
 }

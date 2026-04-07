@@ -2,7 +2,6 @@ package internal
 
 import (
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -74,9 +73,9 @@ func TestCmd_Version(t *testing.T) {
 		Cmd(testVersion)
 	})
 
-	assert.True(
+	assert.Contains(
 		t,
-		strings.Contains(out, testVersion),
+		out, testVersion,
 		"expected version output to contain %q, got: %q",
 		testVersion,
 		out,

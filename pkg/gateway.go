@@ -9,7 +9,7 @@ import (
 
 // Gateway defines the interface for T-Mobile gateway implementations.
 type Gateway interface {
-	NewClient(version, ip string, timeout time.Duration, retries int, debug bool)
+	NewClient(version, gatewayIP string, timeout time.Duration, retries int, debug bool)
 	AddCredentials(username, password string)
 	Login() error
 	Reboot(dryRun bool) error
@@ -37,6 +37,8 @@ var (
 	ErrRebootFailed = errors.New("reboot failed")
 	// ErrSignalFailed indicates a signal operation failed.
 	ErrSignalFailed = errors.New("signal failed")
+	// ErrNoResponse indicates no response available from mock.
+	ErrNoResponse = errors.New("no response available")
 )
 
 // NewGatewayCommon creates a new GatewayCommon with default client.
@@ -45,12 +47,17 @@ func NewGatewayCommon() *GatewayCommon {
 }
 
 // NewClient configures the HTTP client for the gateway.
-func (gc *GatewayCommon) NewClient(version, ip string, timeout time.Duration, retries int, debug bool) {
+func (gc *GatewayCommon) NewClient(
+	version, gatewayIP string,
+	timeout time.Duration,
+	retries int,
+	debug bool,
+) {
 	if gc.Client == nil {
 		gc.Client = resty.New()
 	}
 	gc.Client.
-		SetBaseURL("http://"+ip).
+		SetBaseURL("http://"+gatewayIP).
 		SetHeader("User-Agent", "tmhi-cli/"+version).
 		SetDebug(debug).
 		SetTimeout(timeout)

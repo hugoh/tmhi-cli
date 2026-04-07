@@ -17,7 +17,11 @@ var ErrUnknownGateway = errors.New("unknown gateway")
 // different concrete types (ArcadyanGateway, NokiaGateway) based on input.
 //
 //nolint:ireturn
-func getGateway(version, model, username, password, ip string, timeout time.Duration, retries int, debug bool,
+func getGateway(
+	version, model, username, password, gatewayIP string,
+	timeout time.Duration,
+	retries int,
+	debug bool,
 ) (pkg.Gateway, error) {
 	LogSetup(debug)
 	var gateway pkg.Gateway
@@ -28,10 +32,12 @@ func getGateway(version, model, username, password, ip string, timeout time.Dura
 		gateway = pkg.NewNokiaGateway()
 	default:
 		logrus.WithField("gateway", model).Error("unsupported gateway")
+
 		return nil, fmt.Errorf("%w: %s", ErrUnknownGateway, model)
 	}
 
-	gateway.NewClient(version, ip, timeout, retries, debug)
+	gateway.NewClient(version, gatewayIP, timeout, retries, debug)
 	gateway.AddCredentials(username, password)
+
 	return gateway, nil
 }
