@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func strBody(s string) io.ReadCloser { return io.NopCloser(bytes.NewBufferString(s)) }
@@ -30,7 +31,11 @@ func textResponse(status int, body string) *http.Response {
 	}
 }
 
-func newArcadyan(client *resty.Client, username, password, token string, exp time.Time) *ArcadyanGateway {
+func newArcadyan(
+	client *resty.Client,
+	username, password, token string,
+	exp time.Time,
+) *ArcadyanGateway {
 	ag := &ArcadyanGateway{
 		GatewayCommon: &GatewayCommon{
 			Username: username,
@@ -44,48 +49,52 @@ func newArcadyan(client *resty.Client, username, password, token string, exp tim
 			Expiration: int(exp.Unix()),
 		}
 	}
+
 	return ag
 }
 
 func TestArcadyanGateway_Login_Success(t *testing.T) {
 	body := `{"auth":{"expiration":1234567890,"refreshCountLeft":5,"refreshCountMax":10,"token":"testtoken"}}`
-	client := NewTestClient(jsonResponse(http.StatusOK, body), nil)
+	client := NewTestClient(jsonResponse(http.StatusOK, body), nil) //nolint:bodyclose // test mock
 
 	gw := newArcadyan(client, "user", "pass", "", time.Time{})
 
 	err := gw.Login()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 1234567890, gw.credentials.Expiration)
 	assert.Equal(t, "testtoken", gw.credentials.Token)
 }
 
 func TestArcadyanGateway_Reboot_Failure(t *testing.T) {
+	//nolint:bodyclose // test mock
 	client := NewTestClient(textResponse(http.StatusInternalServerError, "server error"), nil)
 
 	gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 	err := gw.Reboot(false)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reboot failed")
 }
 
 func TestArcadyanGateway_Login_Non200Status(t *testing.T) {
+	//nolint:bodyclose // test mock
 	client := NewTestClient(textResponse(http.StatusUnauthorized, "unauthorized"), nil)
 
 	gw := newArcadyan(client, "user", "pass", "", time.Time{})
 
 	err := gw.Login()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected status 401")
 }
 
 func TestArcadyanGateway_Login_InvalidJSON(t *testing.T) {
+	//nolint:bodyclose // test mock
 	client := NewTestClient(jsonResponse(http.StatusOK, "{invalid json"), nil)
 
 	gw := newArcadyan(client, "user", "pass", "", time.Time{})
 
 	err := gw.Login()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decode login response")
 }
 
@@ -95,11 +104,12 @@ func TestArcadyanGateway_Login_HTTPClientError(t *testing.T) {
 	gw := newArcadyan(client, "user", "pass", "", time.Time{})
 
 	err := gw.Login()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "login request failed")
 }
 
 func TestArcadyanGateway_Info_Success(t *testing.T) {
+	//nolint:bodyclose // test mock
 	client := NewTestClient(jsonResponse(http.StatusOK, `{"system": {"model": "TEST123"}}`), nil)
 
 	gw := newArcadyan(client, "user", "pass", "", time.Time{})
@@ -148,6 +158,7 @@ func TestArcadyanGateway_Status(t *testing.T) {
 	t.Run("successful status with registration info", func(t *testing.T) {
 		headResp := &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
 		infoBody := `{"signal":{"generic":{"registration":"registered"}}}`
+		//nolint:bodyclose // test mock
 		infoResp := jsonResponse(http.StatusOK, infoBody)
 		client := NewMultiTestClient([]*http.Response{headResp, infoResp}, []error{nil, nil})
 
@@ -157,7 +168,7 @@ func TestArcadyanGateway_Status(t *testing.T) {
 		out := CaptureStdout(t, func() {
 			err = gw.Status()
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, out, "Web interface up")
 		assert.Contains(t, out, "Registration status: registered")
 	})
@@ -175,6 +186,7 @@ func TestArcadyanGateway_Status(t *testing.T) {
 
 func TestArcadyanGateway_Request_Methods(t *testing.T) {
 	t.Run("GET request", func(t *testing.T) {
+		//nolint:bodyclose // test mock
 		client := NewTestClient(jsonResponse(http.StatusOK, `{"status": "ok"}`), nil)
 
 		gw := newArcadyan(client, "", "", "valid-token", time.Now().Add(1*time.Hour))
@@ -184,6 +196,7 @@ func TestArcadyanGateway_Request_Methods(t *testing.T) {
 	})
 
 	t.Run("POST request", func(t *testing.T) {
+		//nolint:bodyclose // test mock
 		client := NewTestClient(jsonResponse(http.StatusOK, `{"status": "created"}`), nil)
 
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
@@ -193,6 +206,7 @@ func TestArcadyanGateway_Request_Methods(t *testing.T) {
 	})
 
 	t.Run("non-JSON response", func(t *testing.T) {
+		//nolint:bodyclose // test mock
 		client := NewTestClient(textResponse(http.StatusOK, "plain text response"), nil)
 
 		gw := newArcadyan(client, "", "", "valid-token", time.Now().Add(1*time.Hour))
@@ -202,6 +216,7 @@ func TestArcadyanGateway_Request_Methods(t *testing.T) {
 	})
 
 	t.Run("empty response", func(t *testing.T) {
+		//nolint:bodyclose // test mock
 		client := NewTestClient(textResponse(http.StatusNoContent, ""), nil)
 
 		gw := newArcadyan(client, "", "", "valid-token", time.Now().Add(1*time.Hour))
@@ -211,39 +226,41 @@ func TestArcadyanGateway_Request_Methods(t *testing.T) {
 	})
 }
 
+//nolint:funlen // test function with multiple sub-tests
 func TestArcadyanGateway_Signal(t *testing.T) {
 	t.Run("successful signal retrieval with 4g and 5g", func(t *testing.T) {
 		body := `{
-			"signal": {
-				"4g": {
-					"bands": ["b2"],
-					"bars": 4.0,
-					"cid": 12,
-					"eNBID": 310463,
-					"rsrp": -95,
-					"rsrq": -8,
-					"rssi": -85,
-					"sinr": 15
-				},
-				"5g": {
-					"antennaUsed": "Internal_directional",
-					"bands": ["n41"],
-					"bars": 5.0,
-					"cid": 311,
-					"gNBID": 1076984,
-					"rsrp": -84,
-					"rsrq": -10,
-					"rssi": -72,
-					"sinr": 28
-				},
-				"generic": {
-					"apn": "FBB.HOME",
-					"hasIPv6": true,
-					"registration": "registered",
-					"roaming": false
-				}
-			}
-		}`
+	"signal": {
+		"4g": {
+			"bands": ["b2"],
+			"bars": 4.0,
+			"cid": 12,
+			"eNBID": 310463,
+			"rsrp": -95,
+			"rsrq": -8,
+			"rssi": -85,
+			"sinr": 15
+		},
+		"5g": {
+			"antennaUsed": "Internal_directional",
+			"bands": ["n41"],
+			"bars": 5.0,
+			"cid": 311,
+			"gNBID": 1076984,
+			"rsrp": -84,
+			"rsrq": -10,
+			"rssi": -72,
+			"sinr": 28
+		},
+		"generic": {
+			"apn": "FBB.HOME",
+			"hasIPv6": true,
+			"registration": "registered",
+			"roaming": false
+		}
+	}
+}`
+		//nolint:bodyclose // test mock
 		client := NewTestClient(jsonResponse(http.StatusOK, body), nil)
 
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
@@ -252,7 +269,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		out := CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, out, "=== 4G LTE Signal ===")
 		assert.Contains(t, out, "Signal bars: 4")
 		assert.Contains(t, out, "Bands: [b2]")
@@ -281,26 +298,27 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 
 	t.Run("successful signal retrieval 5g only", func(t *testing.T) {
 		body := `{
-			"signal": {
-				"5g": {
-					"antennaUsed": "",
-					"bands": ["n41"],
-					"bars": 5.0,
-					"cid": 311,
-					"gNBID": 1076984,
-					"rsrp": -84,
-					"rsrq": -10,
-					"rssi": -72,
-					"sinr": 28
-				},
-				"generic": {
-					"apn": "FBB.HOME",
-					"hasIPv6": true,
-					"registration": "registered",
-					"roaming": false
-				}
-			}
-		}`
+	"signal": {
+		"5g": {
+			"antennaUsed": "",
+			"bands": ["n41"],
+			"bars": 5.0,
+			"cid": 311,
+			"gNBID": 1076984,
+			"rsrp": -84,
+			"rsrq": -10,
+			"rssi": -72,
+			"sinr": 28
+		},
+		"generic": {
+			"apn": "FBB.HOME",
+			"hasIPv6": true,
+			"registration": "registered",
+			"roaming": false
+		}
+	}
+}`
+		//nolint:bodyclose // test mock
 		client := NewTestClient(jsonResponse(http.StatusOK, body), nil)
 
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
@@ -309,7 +327,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		out := CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotContains(t, out, "=== 4G LTE Signal ===")
 		assert.Contains(t, out, "=== 5G Signal ===")
 		assert.Contains(t, out, "Signal bars: 5")
@@ -319,25 +337,26 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 
 	t.Run("successful signal retrieval 4g only", func(t *testing.T) {
 		body := `{
-			"signal": {
-				"4g": {
-					"bands": ["b2"],
-					"bars": 4.0,
-					"cid": 12,
-					"eNBID": 310463,
-					"rsrp": -95,
-					"rsrq": -8,
-					"rssi": -85,
-					"sinr": 15
-				},
-				"generic": {
-					"apn": "FBB.HOME",
-					"hasIPv6": true,
-					"registration": "registered",
-					"roaming": false
-				}
-			}
-		}`
+	"signal": {
+		"4g": {
+			"bands": ["b2"],
+			"bars": 4.0,
+			"cid": 12,
+			"eNBID": 310463,
+			"rsrp": -95,
+			"rsrq": -8,
+			"rssi": -85,
+			"sinr": 15
+		},
+		"generic": {
+			"apn": "FBB.HOME",
+			"hasIPv6": true,
+			"registration": "registered",
+			"roaming": false
+		}
+	}
+}`
+		//nolint:bodyclose // test mock
 		client := NewTestClient(jsonResponse(http.StatusOK, body), nil)
 
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
@@ -346,7 +365,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		out := CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, out, "=== 4G LTE Signal ===")
 		assert.Contains(t, out, "Signal bars: 4")
 		assert.Contains(t, out, "eNBID: 310463")
@@ -359,17 +378,18 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		err := gw.Signal()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get signal info")
 	})
 
 	t.Run("signal with non-200 status", func(t *testing.T) {
+		//nolint:bodyclose // test mock
 		client := NewTestClient(jsonResponse(http.StatusInternalServerError, "{}"), nil)
 
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		err := gw.Signal()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "signal failed")
 	})
 }

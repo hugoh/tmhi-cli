@@ -8,7 +8,7 @@ import (
 
 func TestCaptureStdout(t *testing.T) {
 	output := CaptureStdout(t, func() {
-		fmt.Print("hello world")
+		fmt.Print("hello world") //nolint:forbidigo
 	})
 
 	if !strings.Contains(output, "hello world") {
@@ -18,8 +18,8 @@ func TestCaptureStdout(t *testing.T) {
 
 func TestCaptureStdout_MultipleWrites(t *testing.T) {
 	output := CaptureStdout(t, func() {
-		fmt.Print("line1")
-		fmt.Print("line2")
+		fmt.Print("line1") //nolint:forbidigo
+		fmt.Print("line2") //nolint:forbidigo
 	})
 
 	if !strings.Contains(output, "line1") || !strings.Contains(output, "line2") {

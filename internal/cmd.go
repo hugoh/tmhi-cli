@@ -66,6 +66,7 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 		// NOTREACHED
 	}
 	newCtx := context.WithValue(ctx, gatewayContextKey, gateway)
+
 	return newCtx, nil
 }
 
@@ -78,6 +79,7 @@ func Login(ctx context.Context, _ *cli.Command) error {
 	} else {
 		logrus.Info("successfully logged in")
 	}
+
 	return nil
 }
 
@@ -100,6 +102,7 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 	if err := gateway.Request(method, path); err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
+
 	return nil
 }
 
@@ -109,6 +112,7 @@ func Info(ctx context.Context, _ *cli.Command) error {
 	if err := gateway.Info(); err != nil {
 		return fmt.Errorf("info command failed: %w", err)
 	}
+
 	return nil
 }
 
@@ -117,8 +121,10 @@ func Status(ctx context.Context, _ *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if err := gateway.Status(); err != nil {
 		logrus.WithError(err).Error("status check failed")
+
 		return fmt.Errorf("status check failed: %w", err)
 	}
+
 	return nil
 }
 
@@ -128,6 +134,7 @@ func Signal(ctx context.Context, _ *cli.Command) error {
 	if err := gateway.Signal(); err != nil {
 		return fmt.Errorf("signal command failed: %w", err)
 	}
+
 	return nil
 }
 
@@ -137,8 +144,10 @@ func Reboot(ctx context.Context, cmd *cli.Command) error {
 	err := gateway.Reboot(cmd.Bool(ConfigDryRun))
 	if err != nil {
 		logrus.WithError(err).Error("could not reboot gateway")
+
 		return fmt.Errorf("could not reboot gateway: %w", err)
 	}
+
 	return nil
 }
 
@@ -147,6 +156,7 @@ func defaultConfigPath() string {
 	if err != nil {
 		return ".tmhi-cli.toml"
 	}
+
 	return home + "/.tmhi-cli.toml"
 }
 

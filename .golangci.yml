@@ -4,26 +4,20 @@ linters:
   disable:
     - depguard
     - exhaustruct
-    - godox
-    - nlreturn
     - noinlineerr
     - paralleltest
     - testpackage
-    - varnamelen
     - wsl
     - wsl_v5
-  settings:
-    errcheck:
-      check-blank: true
   exclusions:
-    generated: lax
-    paths:
-      - _test\.go
+    rules:
+      - path: _test\.go$
+        linters:
+          - err113
+          - varnamelen
 formatters:
   enable:
     - gci
-    - gofmt
     - gofumpt
     - goimports
-  exclusions:
-    generated: lax
+    - golines

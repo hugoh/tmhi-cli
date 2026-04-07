@@ -8,28 +8,30 @@ import (
 	"testing"
 )
 
-// CaptureStdout captures stdout during fn execution and returns it.
-func CaptureStdout(tb testing.TB, fn func()) string {
+// CaptureStdout captures stdout during function execution and returns it.
+func CaptureStdout(tb testing.TB, action func()) string {
 	tb.Helper()
 	old := os.Stdout
-	r, w, err := os.Pipe()
+	reader, writer, err := os.Pipe()
 	if err != nil {
 		tb.Fatalf("os.Pipe failed: %v", err)
 	}
-	os.Stdout = w
+	os.Stdout = writer
 	defer func() { os.Stdout = old }()
 
-	fn()
+	action()
 
-	if err := w.Close(); err != nil {
+	err = writer.Close()
+	if err != nil {
 		tb.Fatalf("closing write pipe failed: %v", err)
 	}
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, r); err != nil {
+	if _, err := io.Copy(&buf, reader); err != nil {
 		tb.Fatalf("reading from pipe failed: %v", err)
 	}
-	if err := r.Close(); err != nil {
+	if err := reader.Close(); err != nil {
 		tb.Fatalf("closing read pipe failed: %v", err)
 	}
+
 	return buf.String()
 }

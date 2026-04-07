@@ -60,6 +60,7 @@ func (n *NokiaGateway) Login() error {
 	n.Authenticated = true
 	n.Client.SetHeader("Cookie", "sid="+n.credentials.SID)
 	logrus.WithField("credentials", n.credentials).Debug("authenticated")
+
 	return nil
 }
 
@@ -84,6 +85,7 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 
 	if dryRun {
 		logrus.Info("simulating gateway rebooted")
+
 		return nil
 	}
 
@@ -102,9 +104,11 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 			"status": resp.StatusCode(),
 			"body":   resp.String(),
 		}).Error("reboot failed")
+
 		return ErrRebootFailed
 	}
 	logrus.Info("successfully requested gateway rebooted")
+
 	return nil
 }
 
@@ -121,6 +125,7 @@ func (n *NokiaGateway) Info() error {
 // Status checks and displays the gateway connection status.
 func (n *NokiaGateway) Status() error {
 	n.StatusCore()
+
 	return nil
 }
 
@@ -155,6 +160,7 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 		Post(reqURL)
 	if err != nil {
 		logrus.WithError(err).Error("error while making login request")
+
 		return nil, fmt.Errorf("%w: %w", ErrAuthentication, err)
 	}
 	if resp.IsError() {
@@ -162,7 +168,13 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 			"status": resp.StatusCode(),
 			"body":   resp.String(),
 		}).Error("error while making login request")
-		return nil, fmt.Errorf("%w: status %d: %s", ErrAuthentication, resp.StatusCode(), resp.String())
+
+		return nil, fmt.Errorf(
+			"%w: status %d: %s",
+			ErrAuthentication,
+			resp.StatusCode(),
+			resp.String(),
+		)
 	}
 
 	logrus.WithField("response", loginResp).Debug("got login response")
@@ -172,6 +184,7 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 	} else {
 		authErr = fmt.Errorf("%w: no valid credentials returned", ErrAuthentication)
 	}
+
 	return &loginResp, authErr
 }
 
@@ -184,5 +197,6 @@ func (n *NokiaGateway) getNonce() (*nonceResp, error) {
 		return nil, fmt.Errorf("error getting nonce: %w", err)
 	}
 	logrus.WithField("nonce", resp.Nonce).Debug("got nonce")
+
 	return &resp, nil
 }

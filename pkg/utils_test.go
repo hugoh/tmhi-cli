@@ -33,9 +33,9 @@ func Test_Sha256Url(t *testing.T) {
 
 func Test_Random16bytes(t *testing.T) {
 	out1 := Random16bytes()
-	assert.NotEqual(t, "", out1)
+	assert.NotEmpty(t, out1)
 	out2 := Random16bytes()
-	assert.NotEqual(t, "", out2)
+	assert.NotEmpty(t, out2)
 	assert.NotEqual(t, out1, out2)
 }
 

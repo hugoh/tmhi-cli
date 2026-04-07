@@ -14,6 +14,7 @@ import (
 // Base64urlEscape converts base64 to URL-safe encoding.
 func Base64urlEscape(b64 string) string {
 	r := strings.NewReplacer("+", "-", "/", "_", "=", ".")
+
 	return r.Replace(b64)
 }
 
@@ -21,6 +22,7 @@ func Base64urlEscape(b64 string) string {
 func Sha256Hash(val1, val2 string) string {
 	h := sha256.New()
 	h.Write(fmt.Appendf(nil, "%s:%s", val1, val2))
+
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
@@ -32,12 +34,13 @@ func Sha256Url(val1, val2 string) string {
 // Random16bytes generates 16 random bytes encoded as URL-safe base64.
 func Random16bytes() string {
 	const length = 16
-	b := make([]byte, length)
-	_, err := rand.Read(b)
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
 	if err != nil {
 		return ""
 	}
-	return Base64urlEscape(base64.StdEncoding.EncodeToString(b))
+
+	return Base64urlEscape(base64.StdEncoding.EncodeToString(bytes))
 }
 
 // EchoOut writes a string to stdout with a newline.
@@ -58,5 +61,6 @@ func BoolEmoji(b bool) string {
 	if b {
 		return "✅"
 	}
+
 	return "❌"
 }
