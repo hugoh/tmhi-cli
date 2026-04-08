@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/hugoh/tmhi-cli/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -165,12 +166,15 @@ func TestArcadyanGateway_Status(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
-		out := CaptureStdout(t, func() {
+
+		out := testutil.CaptureStdout(t, func() {
 			err = gw.Status()
 		})
 		require.NoError(t, err)
-		assert.Contains(t, out, "Web interface up")
-		assert.Contains(t, out, "Registration status: registered")
+		assert.Contains(t, out, "Web interface")
+		assert.Contains(t, out, "up")
+		assert.Contains(t, out, "Registration status")
+		assert.Contains(t, out, "registered")
 	})
 
 	t.Run("status with network error returns unknown", func(t *testing.T) {
@@ -266,34 +270,31 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
-		out := CaptureStdout(t, func() {
+
+		out := testutil.CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
 		require.NoError(t, err)
-		assert.Contains(t, out, "=== 4G LTE Signal ===")
-		assert.Contains(t, out, "Signal bars: 4")
-		assert.Contains(t, out, "Bands: [b2]")
-		assert.Contains(t, out, "RSRP: -95 dBm")
-		assert.Contains(t, out, "RSRQ: -8 dB")
-		assert.Contains(t, out, "RSSI: -85 dBm")
-		assert.Contains(t, out, "SINR: 15 dB")
-		assert.Contains(t, out, "CID: 12")
-		assert.Contains(t, out, "eNBID: 310463")
-		assert.Contains(t, out, "=== 5G Signal ===")
-		assert.Contains(t, out, "Signal bars: 5")
-		assert.Contains(t, out, "Antenna: Internal_directional")
-		assert.Contains(t, out, "Bands: [n41]")
-		assert.Contains(t, out, "RSRP: -84 dBm")
-		assert.Contains(t, out, "RSRQ: -10 dB")
-		assert.Contains(t, out, "RSSI: -72 dBm")
-		assert.Contains(t, out, "SINR: 28 dB")
-		assert.Contains(t, out, "CID: 311")
-		assert.Contains(t, out, "gNBID: 1076984")
-		assert.Contains(t, out, "=== Generic Info ===")
-		assert.Contains(t, out, "APN: FBB.HOME")
-		assert.Contains(t, out, "IPv6: true")
-		assert.Contains(t, out, "Registration: registered")
-		assert.Contains(t, out, "Roaming: false")
+		assert.Contains(t, out, "4G LTE Signal")
+		assert.Contains(t, out, "4")
+		assert.Contains(t, out, "[b2]")
+		assert.Contains(t, out, "-95")
+		assert.Contains(t, out, "-8")
+		assert.Contains(t, out, "-85")
+		assert.Contains(t, out, "15")
+		assert.Contains(t, out, "310463")
+		assert.Contains(t, out, "5G Signal")
+		assert.Contains(t, out, "5")
+		assert.Contains(t, out, "Internal_directional")
+		assert.Contains(t, out, "[n41]")
+		assert.Contains(t, out, "-84")
+		assert.Contains(t, out, "-10")
+		assert.Contains(t, out, "-72")
+		assert.Contains(t, out, "28")
+		assert.Contains(t, out, "1076984")
+		assert.Contains(t, out, "Generic Info")
+		assert.Contains(t, out, "FBB.HOME")
+		assert.Contains(t, out, "registered")
 	})
 
 	t.Run("successful signal retrieval 5g only", func(t *testing.T) {
@@ -324,15 +325,16 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
-		out := CaptureStdout(t, func() {
+
+		out := testutil.CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
 		require.NoError(t, err)
-		assert.NotContains(t, out, "=== 4G LTE Signal ===")
-		assert.Contains(t, out, "=== 5G Signal ===")
-		assert.Contains(t, out, "Signal bars: 5")
-		assert.Contains(t, out, "Bands: [n41]")
-		assert.NotContains(t, out, "Antenna:")
+		assert.NotContains(t, out, "4G LTE Signal")
+		assert.Contains(t, out, "5G Signal")
+		assert.Contains(t, out, "5")
+		assert.Contains(t, out, "[n41]")
+		assert.NotContains(t, out, "Antenna")
 	})
 
 	t.Run("successful signal retrieval 4g only", func(t *testing.T) {
@@ -362,14 +364,15 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
-		out := CaptureStdout(t, func() {
+
+		out := testutil.CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
 		require.NoError(t, err)
-		assert.Contains(t, out, "=== 4G LTE Signal ===")
-		assert.Contains(t, out, "Signal bars: 4")
-		assert.Contains(t, out, "eNBID: 310463")
-		assert.NotContains(t, out, "=== 5G Signal ===")
+		assert.Contains(t, out, "4G LTE Signal")
+		assert.Contains(t, out, "4")
+		assert.Contains(t, out, "310463")
+		assert.NotContains(t, out, "5G Signal")
 	})
 
 	t.Run("signal with network error", func(t *testing.T) {

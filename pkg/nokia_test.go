@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/hugoh/tmhi-cli/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -113,7 +114,8 @@ func TestNokiaGateway_Status(t *testing.T) {
 	gw.Client = client
 
 	var err error
-	out := CaptureStdout(t, func() {
+
+	out := testutil.CaptureStdout(t, func() {
 		err = gw.Status()
 	})
 	require.NoError(t, err)

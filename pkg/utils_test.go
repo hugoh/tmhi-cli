@@ -6,16 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_EchoStatus(t *testing.T) {
-	out := CaptureStdout(t, func() {
-		testMessage := "test status"
-		EchoStatus(testMessage, true)
-		EchoStatus(testMessage, false)
-	})
-	assert.Contains(t, out, "✅")
-	assert.Contains(t, out, "❌")
-}
-
 func Test_Sha256Hash(t *testing.T) {
 	result := Sha256Hash("admin", "password")
 	assert.Equal(t, "ux+w+s92nXMGACVBFqXMzkpsDxdWeI/aFC8GPNGAKqM=", result)
@@ -34,15 +24,8 @@ func Test_Sha256Url(t *testing.T) {
 func Test_Random16bytes(t *testing.T) {
 	out1 := Random16bytes()
 	assert.NotEmpty(t, out1)
+
 	out2 := Random16bytes()
 	assert.NotEmpty(t, out2)
 	assert.NotEqual(t, out1, out2)
-}
-
-func Test_EchoOut(t *testing.T) {
-	testString := "test echo output"
-	out := CaptureStdout(t, func() {
-		EchoOut(testString)
-	})
-	assert.Equal(t, testString+"\n", out)
 }

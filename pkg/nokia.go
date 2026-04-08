@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"github.com/pterm/pterm"
 )
 
 // NokiaGateway implements Gateway for Nokia-based T-Mobile gateways.
@@ -46,6 +46,7 @@ func (n *NokiaGateway) Login() error {
 	if n.Authenticated {
 		return nil
 	}
+
 	nonceResp, nonceErr := n.getNonce()
 	if nonceErr != nil {
 		return fmt.Errorf("error getting nonce: %w", nonceErr)
@@ -55,11 +56,12 @@ func (n *NokiaGateway) Login() error {
 	if loginErr != nil {
 		return fmt.Errorf("login failed: %w", loginErr)
 	}
+
 	n.credentials.SID = loginResp.Sid
 	n.credentials.CSRFToken = loginResp.CsrfToken
 	n.Authenticated = true
 	n.Client.SetHeader("Cookie", "sid="+n.credentials.SID)
-	logrus.WithField("credentials", n.credentials).Debug("authenticated")
+	pterm.Debug.Println("authenticated", n.credentials)
 
 	return nil
 }
@@ -77,14 +79,14 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 	req := n.Client.R().
 		SetFormData(formData)
 
-	logrus.WithFields(logrus.Fields{
-		"url":    rebootRequestURL,
-		"cookie": "sid=" + n.credentials.SID,
-		"params": formData,
-	}).Debug("reboot request prepared")
+	pterm.Debug.Println("reboot request prepared:",
+		rebootRequestURL,
+		"cookie=", "sid="+n.credentials.SID,
+		"params=", formData,
+	)
 
 	if dryRun {
-		logrus.Info("simulating gateway rebooted")
+		pterm.Info.Println("simulating gateway rebooted")
 
 		return nil
 	}
@@ -94,20 +96,15 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 		return fmt.Errorf("error sending reboot request: %w", err)
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"status": resp.StatusCode(),
-		"body":   resp.String(),
-	}).Debug("reboot response")
+	pterm.Debug.Println("reboot response:", resp.StatusCode(), resp.String())
 
 	if resp.IsError() {
-		logrus.WithFields(logrus.Fields{
-			"status": resp.StatusCode(),
-			"body":   resp.String(),
-		}).Error("reboot failed")
+		pterm.Error.Println("reboot failed", resp.StatusCode(), resp.String())
 
 		return ErrRebootFailed
 	}
-	logrus.Info("successfully requested gateway rebooted")
+
+	pterm.Info.Println("successfully requested gateway rebooted")
 
 	return nil
 }
@@ -148,26 +145,22 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 	}
 
 	reqURL := "/login_web_app.cgi"
-	logrus.WithFields(logrus.Fields{
-		"url":    reqURL,
-		"params": reqParams,
-	}).Info("sending login request")
+	pterm.Info.Println("sending login request", reqURL, reqParams)
 
 	var loginResp nokiaLoginResp
+
 	resp, err := n.Client.R().
 		SetFormData(reqParams).
 		SetResult(&loginResp).
 		Post(reqURL)
 	if err != nil {
-		logrus.WithError(err).Error("error while making login request")
+		pterm.Error.Println("error while making login request", err)
 
 		return nil, fmt.Errorf("%w: %w", ErrAuthentication, err)
 	}
+
 	if resp.IsError() {
-		logrus.WithFields(logrus.Fields{
-			"status": resp.StatusCode(),
-			"body":   resp.String(),
-		}).Error("error while making login request")
+		pterm.Error.Println("error while making login request", resp.StatusCode(), resp.String())
 
 		return nil, fmt.Errorf(
 			"%w: status %d: %s",
@@ -177,7 +170,8 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 		)
 	}
 
-	logrus.WithField("response", loginResp).Debug("got login response")
+	pterm.Debug.Println("got login response", loginResp)
+
 	var authErr error
 	if loginResp.success() {
 		authErr = nil
@@ -190,13 +184,15 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 
 func (n *NokiaGateway) getNonce() (*nonceResp, error) {
 	var resp nonceResp
+
 	_, err := n.Client.R().
 		SetResult(&resp).
 		Get("/login_web_app.cgi?nonce")
 	if err != nil {
 		return nil, fmt.Errorf("error getting nonce: %w", err)
 	}
-	logrus.WithField("nonce", resp.Nonce).Debug("got nonce")
+
+	pterm.Debug.Println("got nonce:", resp.Nonce)
 
 	return &resp, nil
 }

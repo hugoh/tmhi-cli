@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/hugoh/tmhi-cli/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,37 +82,34 @@ func TestAddCredentials(t *testing.T) {
 
 func TestGatewayCommon_StatusCore(t *testing.T) {
 	cases := []struct {
-		name      string
-		resp      *http.Response
-		err       error
-		wantEmoji string
+		name string
+		resp *http.Response
+		err  error
+		want string
 	}{
 		{
-			name:      "successful web interface check",
-			resp:      &http.Response{StatusCode: http.StatusOK, Body: http.NoBody},
-			err:       nil,
-			wantEmoji: "✅",
+			name: "successful web interface check",
+			resp: &http.Response{StatusCode: http.StatusOK, Body: http.NoBody},
+			err:  nil,
+			want: "Web interface up",
 		},
 		{
 			name: "failed web interface status code",
-			resp: &http.Response{
-				StatusCode: http.StatusInternalServerError,
-				Body:       http.NoBody,
-			},
-			err:       nil,
-			wantEmoji: "❌",
+			resp: &http.Response{StatusCode: http.StatusInternalServerError, Body: http.NoBody},
+			err:  nil,
+			want: "Web interface down",
 		},
 		{
-			name:      "not found web interface",
-			resp:      &http.Response{StatusCode: http.StatusNotFound, Body: http.NoBody},
-			err:       nil,
-			wantEmoji: "❌",
+			name: "not found web interface",
+			resp: &http.Response{StatusCode: http.StatusNotFound, Body: http.NoBody},
+			err:  nil,
+			want: "Web interface down",
 		},
 		{
-			name:      "failed web interface check",
-			resp:      nil,
-			err:       errors.New("connection refused"),
-			wantEmoji: "❌",
+			name: "failed web interface check",
+			resp: nil,
+			err:  errors.New("connection refused"),
+			want: "Web interface down",
 		},
 	}
 
@@ -121,10 +119,10 @@ func TestGatewayCommon_StatusCore(t *testing.T) {
 			gc := NewGatewayCommon()
 			gc.Client = client
 
-			out := CaptureStdout(t, func() {
+			out := testutil.CaptureStdout(t, func() {
 				gc.StatusCore()
 			})
-			assert.Contains(t, out, tc.wantEmoji)
+			assert.Contains(t, out, tc.want)
 		})
 	}
 }
