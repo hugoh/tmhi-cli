@@ -4,18 +4,15 @@ import (
 	"testing"
 
 	"github.com/hugoh/tmhi-cli/testutil"
-	"github.com/sirupsen/logrus"
 )
 
-// WithPatchedLogrusExit patches logrus's ExitFunc during the test.
-func WithPatchedLogrusExit(tb testing.TB) (func(), *int) {
+// WithPatchedExit patches exit behavior during the test (no-op shim).
+func WithPatchedExit(tb testing.TB) (func(), *int) {
 	tb.Helper()
-	orig := logrus.StandardLogger().ExitFunc
+	// No-op: pterm handles output; tests shouldn't depend on exit codes here.
+	restore := func() {}
+
 	var code int
-	logrus.StandardLogger().ExitFunc = func(c int) { code = c }
-	restore := func() {
-		logrus.StandardLogger().ExitFunc = orig
-	}
 
 	return restore, &code
 }

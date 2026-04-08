@@ -113,6 +113,7 @@ func TestNokiaGateway_Status(t *testing.T) {
 	gw.Client = client
 
 	var err error
+
 	out := CaptureStdout(t, func() {
 		err = gw.Status()
 	})

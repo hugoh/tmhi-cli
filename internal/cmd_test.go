@@ -4,21 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestLogSetup(t *testing.T) {
-	t.Run("debug logging enabled", func(t *testing.T) {
-		LogSetup(true)
-		assert.Equal(t, logrus.DebugLevel, logrus.GetLevel())
-	})
-
-	t.Run("debug logging disabled", func(t *testing.T) {
-		LogSetup(false)
-		assert.Equal(t, logrus.InfoLevel, logrus.GetLevel())
-	})
-}
 
 func TestDefaultConfigPath(t *testing.T) {
 	path := defaultConfigPath()
@@ -28,9 +15,10 @@ func TestDefaultConfigPath(t *testing.T) {
 
 func TestBuildFlags(t *testing.T) {
 	var configFile string
+
 	flags := buildFlags(&configFile, nil)
 
-	assert.Len(t, flags, 9)
+	assert.Len(t, flags, 10)
 }
 
 func TestBuildCommands(t *testing.T) {
@@ -46,11 +34,12 @@ func TestBuildCommands(t *testing.T) {
 }
 
 func TestCmd_Help(t *testing.T) {
-	restore, _ := WithPatchedLogrusExit(t)
+	restore, _ := WithPatchedExit(t)
 	defer restore()
 
 	oldArgs := os.Args
 	os.Args = []string{"tmhi-cli", "--help"}
+
 	defer func() { os.Args = oldArgs }()
 
 	out := CaptureStdout(t, func() {
@@ -61,11 +50,12 @@ func TestCmd_Help(t *testing.T) {
 }
 
 func TestCmd_Version(t *testing.T) {
-	restore, _ := WithPatchedLogrusExit(t)
+	restore, _ := WithPatchedExit(t)
 	defer restore()
 
 	oldArgs := os.Args
 	os.Args = []string{"tmhi-cli", "--version"}
+
 	defer func() { os.Args = oldArgs }()
 
 	testVersion := "test-version-123"

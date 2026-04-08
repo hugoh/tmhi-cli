@@ -10,9 +10,11 @@ import (
 )
 
 func TestGateway(t *testing.T) {
-	const testUser = "u"
-	const testPass = "p"
-	const testIP = "192.168.1.1"
+	const (
+		testUser = "u"
+		testPass = "p"
+		testIP   = "192.168.1.1"
+	)
 
 	t.Run("Nokia gateway creation", func(t *testing.T) {
 		g, err := getGateway("test-version", NOK5G21, testUser, testPass, testIP, 0, 0, false)
@@ -52,6 +54,7 @@ func TestGateway(t *testing.T) {
 			true,
 		)
 		require.NoError(t, err)
+
 		nokia, ok := g.(*pkg.NokiaGateway)
 		require.True(t, ok)
 		assert.Equal(t, "http://192.168.1.1", nokia.Client.BaseURL)

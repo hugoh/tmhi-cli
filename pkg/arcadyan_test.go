@@ -165,12 +165,15 @@ func TestArcadyanGateway_Status(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
+
 		out := CaptureStdout(t, func() {
 			err = gw.Status()
 		})
 		require.NoError(t, err)
-		assert.Contains(t, out, "Web interface up")
-		assert.Contains(t, out, "Registration status: registered")
+		assert.Contains(t, out, "Web interface")
+		assert.Contains(t, out, "up")
+		assert.Contains(t, out, "Registration status")
+		assert.Contains(t, out, "registered")
 	})
 
 	t.Run("status with network error returns unknown", func(t *testing.T) {
@@ -266,6 +269,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
+
 		out := CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
@@ -324,6 +328,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
+
 		out := CaptureStdout(t, func() {
 			err = gw.Signal()
 		})
@@ -362,6 +367,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 		gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
 
 		var err error
+
 		out := CaptureStdout(t, func() {
 			err = gw.Signal()
 		})

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/hugoh/tmhi-cli/pkg"
-	"github.com/sirupsen/logrus"
+	"github.com/pterm/pterm"
 )
 
 // ErrUnknownGateway is returned when an unsupported gateway model is specified.
@@ -23,15 +23,15 @@ func getGateway(
 	retries int,
 	debug bool,
 ) (pkg.Gateway, error) {
-	LogSetup(debug)
 	var gateway pkg.Gateway
+
 	switch model {
 	case "ARCADYAN":
 		gateway = pkg.NewArcadyanGateway()
 	case "NOK5G21":
 		gateway = pkg.NewNokiaGateway()
 	default:
-		logrus.WithField("gateway", model).Error("unsupported gateway")
+		pterm.Error.Println("unsupported gateway:", model)
 
 		return nil, fmt.Errorf("%w: %s", ErrUnknownGateway, model)
 	}
