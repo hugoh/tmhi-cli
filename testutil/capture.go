@@ -1,4 +1,4 @@
-// Package testutil provides testing utilities for tmhi-cli.
+// Package testutil provides test helpers with terminal output
 package testutil
 
 import (
@@ -11,40 +11,54 @@ import (
 	"github.com/pterm/pterm"
 )
 
-// CaptureStdout captures stdout during function execution and returns it.
-func CaptureStdout(tb testing.TB, action func()) string {
+// CaptureOutput captures stdout and stderr.
+func CaptureOutput(tb testing.TB, action func()) string {
 	tb.Helper()
 
-	old := os.Stdout
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
 
-	reader, writer, err := os.Pipe()
+	rOut, wOut, err := os.Pipe()
 	if err != nil {
 		tb.Fatalf("os.Pipe failed: %v", err)
 	}
 
-	os.Stdout = writer
+	rErr, wErr, err := os.Pipe()
+	if err != nil {
+		tb.Fatalf("os.Pipe failed: %v", err)
+	}
+
+	os.Stdout = wOut
+	os.Stderr = wErr
+
 	pterm.SetDefaultOutput(os.Stdout)
+
+	pterm.DefaultSpinner.Writer = os.Stderr
 
 	action()
 
-	pterm.SetDefaultOutput(old)
-	os.Stdout = old
+	pterm.SetDefaultOutput(oldStdout)
 
-	err = writer.Close()
-	if err != nil {
-		tb.Fatalf("closing write pipe failed: %v", err)
+	pterm.DefaultSpinner.Writer = oldStderr
+	os.Stdout = oldStdout
+	os.Stderr = oldStderr
+
+	_ = wOut.Close()
+	_ = wErr.Close()
+
+	var bufOut, bufErr bytes.Buffer
+	if _, err := io.Copy(&bufOut, rOut); err != nil {
+		tb.Fatalf("reading from stdout pipe failed: %v", err)
 	}
 
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, reader); err != nil {
-		tb.Fatalf("reading from pipe failed: %v", err)
+	if _, err := io.Copy(&bufErr, rErr); err != nil {
+		tb.Fatalf("reading from stderr pipe failed: %v", err)
 	}
 
-	if err := reader.Close(); err != nil {
-		tb.Fatalf("closing read pipe failed: %v", err)
-	}
+	_ = rOut.Close()
+	_ = rErr.Close()
 
-	out := buf.String()
+	out := bufOut.String() + bufErr.String()
 	ansi := regexp.MustCompile(`\x1b\[[0-9;]*m`)
 	out = ansi.ReplaceAllString(out, "")
 

@@ -119,7 +119,7 @@ func TestGatewayCommon_StatusCore(t *testing.T) {
 			gc := NewGatewayCommon()
 			gc.Client = client
 
-			out := testutil.CaptureStdout(t, func() {
+			out := testutil.CaptureOutput(t, func() {
 				gc.StatusCore()
 			})
 			assert.Contains(t, out, tc.want)

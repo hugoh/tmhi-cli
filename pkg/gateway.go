@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -71,11 +72,17 @@ func (gc *GatewayCommon) NewClient(
 
 // StatusCore checks if the gateway web interface is accessible.
 func (gc *GatewayCommon) StatusCore() {
+	spinner, _ := pterm.DefaultSpinner.Start("Checking web interface...")
+
 	resp, err := gc.Client.R().Head("/")
-	if err == nil && resp.IsSuccess() {
-		pterm.Success.Println("Web interface up")
-	} else {
-		pterm.Error.Println("Web interface down")
+
+	switch {
+	case err == nil && resp.IsSuccess():
+		spinner.Success("Web interface up")
+	case err != nil:
+		spinner.Fail("Web interface down: " + err.Error())
+	default:
+		spinner.Fail(fmt.Sprintf("Web interface down: status %d", resp.StatusCode()))
 	}
 }
 

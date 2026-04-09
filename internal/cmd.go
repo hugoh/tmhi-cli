@@ -26,26 +26,23 @@ const (
 	DefaultTimeout time.Duration = 5 * time.Second
 )
 
-// Configuration flag names.
-const (
-	ConfigDryRun   string = "dry-run"
-	ConfigConfig   string = "config"
-	ConfigDebug    string = "debug"
-	ConfigLogin    string = "login."
-	ConfigUsername string = ConfigLogin + "username"
-	ConfigPassword string = ConfigLogin + "password"
-	ConfigGateway  string = "gateway."
-	ConfigModel    string = ConfigGateway + "model"
-	ConfigIP       string = ConfigGateway + "ip"
-	ConfigTimeout  string = "timeout"
-	ConfigRetries  string = "retries"
-	// ConfigAutoConfirm enables auto-confirm prompts.
-	ConfigAutoConfirm string = "yes"
-)
-
-// (No global LogSetup; switched to pterm-based output and explicit checks)
-
 func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	debug := cmd.Bool(ConfigDebug)
+	noColor := cmd.Bool(ConfigNoColor)
+	quiet := cmd.Bool(ConfigQuiet)
+
+	if debug {
+		pterm.EnableDebugMessages()
+	}
+
+	if noColor {
+		pterm.DisableStyling()
+	}
+
+	if quiet {
+		pterm.DisableOutput()
+	}
+
 	gateway, err := getGateway(cmd.Version,
 		cmd.String(ConfigModel),
 		cmd.String(ConfigUsername),
@@ -53,7 +50,7 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 		cmd.String(ConfigIP),
 		cmd.Duration(ConfigTimeout),
 		cmd.Int(ConfigRetries),
-		cmd.Bool(ConfigDebug),
+		debug,
 	)
 	if err != nil {
 		pterm.Error.Println("could not instantiate gateway:", err)
@@ -73,9 +70,11 @@ func Login(ctx context.Context, _ *cli.Command) error {
 	err := gateway.Login()
 	if err != nil {
 		pterm.Error.Println("could not log in:", err)
-	} else {
-		pterm.Success.Println("successfully logged in")
+
+		return cli.Exit("login failed", 1)
 	}
+
+	pterm.Success.Println("successfully logged in")
 
 	return nil
 }
@@ -142,7 +141,7 @@ func Reboot(ctx context.Context, cmd *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 
 	dryRun := cmd.Bool(ConfigDryRun)
-	if !dryRun && !cmd.Bool(ConfigAutoConfirm) {
+	if !cmd.Bool(ConfigAutoConfirm) {
 		confirm, _ := pterm.DefaultInteractiveConfirm.
 			WithDefaultValue(false).
 			Show("Are you sure you want to reboot the gateway?")
@@ -172,54 +171,6 @@ func defaultConfigPath() string {
 	return home + "/.tmhi-cli.toml"
 }
 
-func buildFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag {
-	return buildFlagsBaseCore(configFile, configSource)
-}
-
-func buildCommands() []*cli.Command {
-	return []*cli.Command{
-		{
-			Name:   "login",
-			Usage:  "Verify that the credentials can log the tool in",
-			Action: Login,
-		},
-		{
-			Name:   "reboot",
-			Usage:  "Reboot the router",
-			Action: Reboot,
-		},
-		{
-			Name:   "info",
-			Usage:  "Get gateway information",
-			Action: Info,
-		},
-		{
-			Name:   "status",
-			Usage:  "Check gateway status",
-			Action: Status,
-		},
-		{
-			Name:   "signal",
-			Usage:  "Display signal strength information",
-			Action: Signal,
-		},
-		{
-			Name:      "req",
-			Usage:     "Make a custom HTTP request to the gateway",
-			ArgsUsage: "<HTTP method> <path>",
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:    "login",
-					Aliases: []string{"l"},
-					Value:   false,
-					Usage:   "login before making request",
-				},
-			},
-			Action: Req,
-		},
-	}
-}
-
 // Cmd is the main entry point for the CLI application.
 func Cmd(version string) {
 	var configFile string
@@ -230,13 +181,12 @@ func Cmd(version string) {
 		Name:     "tmhi-cli",
 		Usage:    "Utility to interact with T-Mobile Home Internet gateway",
 		Version:  version,
-		Flags:    buildFlags(&configFile, configSource),
-		Commands: buildCommands(),
+		Flags:    cmdFlags(&configFile, configSource),
+		Commands: cmdCommands(),
 		Before:   commonContext,
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
-		pterm.Fatal.Println("application error:", err)
 		os.Exit(1)
 	}
 }

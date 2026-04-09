@@ -14,16 +14,23 @@ func TestDefaultConfigPath(t *testing.T) {
 	assert.Contains(t, path, ".tmhi-cli.toml")
 }
 
+func TestDefaultConfigPath_HomeError(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	path := defaultConfigPath()
+	assert.Equal(t, ".tmhi-cli.toml", path)
+}
+
 func TestBuildFlags(t *testing.T) {
 	var configFile string
 
-	flags := buildFlags(&configFile, nil)
+	flags := cmdFlags(&configFile, nil)
 
-	assert.Len(t, flags, 10)
+	assert.Len(t, flags, 12)
 }
 
 func TestBuildCommands(t *testing.T) {
-	commands := buildCommands()
+	commands := cmdCommands()
 
 	assert.Len(t, commands, 6)
 	assert.Equal(t, "login", commands[0].Name)
@@ -40,7 +47,7 @@ func TestCmd_Help(t *testing.T) {
 
 	defer func() { os.Args = oldArgs }()
 
-	out := testutil.CaptureStdout(t, func() {
+	out := testutil.CaptureOutput(t, func() {
 		Cmd("test-version")
 	})
 
@@ -54,7 +61,7 @@ func TestCmd_Version(t *testing.T) {
 	defer func() { os.Args = oldArgs }()
 
 	testVersion := "test-version-123"
-	out := testutil.CaptureStdout(t, func() {
+	out := testutil.CaptureOutput(t, func() {
 		Cmd(testVersion)
 	})
 

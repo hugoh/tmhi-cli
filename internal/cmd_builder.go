@@ -8,14 +8,69 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func buildFlagsBaseCore(configFile *string, configSource altsrc.Sourcer) []cli.Flag {
-	partA := buildFlagsBaseCorePartA(configFile, configSource)
-	partB := buildFlagsBaseCorePartB(configFile, configSource)
+// Configuration flag names.
+const (
+	ConfigAutoConfirm string = "yes"
+	ConfigConfig      string = "config"
+	ConfigDebug       string = "debug"
+	ConfigDryRun      string = "dry-run"
+	ConfigGateway     string = "gateway."
+	ConfigIP          string = ConfigGateway + "ip"
+	ConfigLogin       string = "login."
+	ConfigModel       string = ConfigGateway + "model"
+	ConfigNoColor     string = "no-color"
+	ConfigPassword    string = ConfigLogin + "password"
+	ConfigQuiet       string = "quiet"
+	ConfigRetries     string = "retries"
+	ConfigTimeout     string = "timeout"
+	ConfigUsername    string = ConfigLogin + "username"
+)
 
-	return append(partA, partB...)
+func cmdCommands() []*cli.Command {
+	return []*cli.Command{
+		{
+			Name:   "login",
+			Usage:  "Verify that the credentials can log the tool in",
+			Action: Login,
+		},
+		{
+			Name:   "reboot",
+			Usage:  "Reboot the router",
+			Action: Reboot,
+		},
+		{
+			Name:   "info",
+			Usage:  "Get gateway information",
+			Action: Info,
+		},
+		{
+			Name:   "status",
+			Usage:  "Check gateway status",
+			Action: Status,
+		},
+		{
+			Name:   "signal",
+			Usage:  "Display signal strength information",
+			Action: Signal,
+		},
+		{
+			Name:      "req",
+			Usage:     "Make a custom HTTP request to the gateway",
+			ArgsUsage: "<HTTP method> <path>",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "login",
+					Aliases: []string{"l"},
+					Value:   false,
+					Usage:   "login before making request",
+				},
+			},
+			Action: Req,
+		},
+	}
 }
 
-func buildFlagsBaseCorePartA(configFile *string, configSource altsrc.Sourcer) []cli.Flag {
+func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //nolint:funlen
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        ConfigConfig,
@@ -32,10 +87,21 @@ func buildFlagsBaseCorePartA(configFile *string, configSource altsrc.Sourcer) []
 			Usage:   "display debugging output in the console",
 		},
 		&cli.BoolFlag{
+			Name:  ConfigNoColor,
+			Value: false,
+			Usage: "disable colored output",
+		},
+		&cli.BoolFlag{
+			Name:    ConfigQuiet,
+			Aliases: []string{"q"},
+			Value:   false,
+			Usage:   "quiet mode, suppresses output",
+		},
+		&cli.BoolFlag{
 			Name:    ConfigAutoConfirm,
 			Aliases: []string{"y"},
 			Value:   false,
-			Usage:   "Skip confirmation prompts",
+			Usage:   "skip confirmation prompts",
 		},
 		&cli.BoolFlag{
 			Name:    ConfigDryRun,
@@ -67,11 +133,6 @@ func buildFlagsBaseCorePartA(configFile *string, configSource altsrc.Sourcer) []
 			Required: false,
 			Usage:    "admin password",
 		},
-	}
-}
-
-func buildFlagsBaseCorePartB(_ *string, configSource altsrc.Sourcer) []cli.Flag {
-	return []cli.Flag{
 		&cli.IntFlag{
 			Name:    ConfigRetries,
 			Sources: cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),

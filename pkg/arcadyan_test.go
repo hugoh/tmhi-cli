@@ -77,6 +77,23 @@ func TestArcadyanGateway_Reboot_Failure(t *testing.T) {
 	assert.Contains(t, err.Error(), "reboot failed")
 }
 
+func TestArcadyanGateway_Reboot_DryRun(t *testing.T) {
+	gw := newArcadyan(nil, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+	err := gw.Reboot(true)
+	require.NoError(t, err)
+}
+
+func TestArcadyanGateway_Reboot_Success(t *testing.T) {
+	//nolint:bodyclose // test mock
+	client := NewTestClient(textResponse(http.StatusOK, "reboot initiated"), nil)
+
+	gw := newArcadyan(client, "user", "pass", "valid-token", time.Now().Add(1*time.Hour))
+
+	err := gw.Reboot(false)
+	require.NoError(t, err)
+}
+
 func TestArcadyanGateway_Login_Non200Status(t *testing.T) {
 	//nolint:bodyclose // test mock
 	client := NewTestClient(textResponse(http.StatusUnauthorized, "unauthorized"), nil)
@@ -85,7 +102,9 @@ func TestArcadyanGateway_Login_Non200Status(t *testing.T) {
 
 	err := gw.Login()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unexpected status 401")
+	assert.Contains(t, err.Error(), "authentication failed")
+	assert.Contains(t, err.Error(), "401")
+	assert.ErrorIs(t, err, ErrAuthentication)
 }
 
 func TestArcadyanGateway_Login_InvalidJSON(t *testing.T) {
@@ -167,7 +186,7 @@ func TestArcadyanGateway_Status(t *testing.T) {
 
 		var err error
 
-		out := testutil.CaptureStdout(t, func() {
+		out := testutil.CaptureOutput(t, func() {
 			err = gw.Status()
 		})
 		require.NoError(t, err)
@@ -271,7 +290,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 
 		var err error
 
-		out := testutil.CaptureStdout(t, func() {
+		out := testutil.CaptureOutput(t, func() {
 			err = gw.Signal()
 		})
 		require.NoError(t, err)
@@ -326,7 +345,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 
 		var err error
 
-		out := testutil.CaptureStdout(t, func() {
+		out := testutil.CaptureOutput(t, func() {
 			err = gw.Signal()
 		})
 		require.NoError(t, err)
@@ -365,7 +384,7 @@ func TestArcadyanGateway_Signal(t *testing.T) {
 
 		var err error
 
-		out := testutil.CaptureStdout(t, func() {
+		out := testutil.CaptureOutput(t, func() {
 			err = gw.Signal()
 		})
 		require.NoError(t, err)
