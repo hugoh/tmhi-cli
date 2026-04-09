@@ -10,7 +10,7 @@ import (
 	"time"
 
 	signal "github.com/hugoh/cellular-signal"
-	"github.com/sirupsen/logrus"
+	"github.com/pterm/pterm"
 )
 
 // ArcadyanGateway implements Gateway for Arcadyan-based T-Mobile gateways.
@@ -48,10 +48,7 @@ func (a *ArcadyanGateway) Login() error {
 	}
 
 	reqPath := "/TMI/v1/auth/login"
-	logrus.WithFields(logrus.Fields{
-		"url":    reqPath,
-		"params": bodyMap,
-	}).Debug("sending login request")
+	pterm.Debug.Println("sending login request:", reqPath)
 
 	var loginResp struct {
 		Auth struct {
@@ -61,6 +58,7 @@ func (a *ArcadyanGateway) Login() error {
 			Token            string
 		}
 	}
+
 	resp, err := a.Client.R().
 		SetBody(bodyMap).
 		SetResult(&loginResp).
@@ -101,12 +99,10 @@ func (a *ArcadyanGateway) Reboot(dryRun bool) error {
 
 	rebootRequestPath := "/TMI/v1/gateway/reset?set=reboot"
 
-	logrus.WithFields(logrus.Fields{
-		"url": rebootRequestPath,
-	}).Debug("reboot request prepared")
+	pterm.Debug.Println("reboot request prepared:", rebootRequestPath)
 
 	if dryRun {
-		logrus.Info("Dry run - would send reboot request")
+		pterm.Info.Println("Dry run - would send reboot request")
 
 		return nil
 	}
@@ -131,25 +127,25 @@ func (a *ArcadyanGateway) Info() error {
 
 // Request makes an HTTP request to the gateway and displays the response.
 func (a *ArcadyanGateway) Request(method, path string) error {
-	logrus.WithFields(logrus.Fields{
-		"method": method,
-		"url":    path,
-	}).Debug("making request")
+	pterm.Debug.Println("making request:", method, path)
+
 	resp, err := a.Client.R().Execute(method, path)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
+
 	contentType := resp.Header().Get("Content-Type")
 	body := resp.Body()
+
 	if strings.HasPrefix(contentType, "application/json") {
 		var prettyJSON bytes.Buffer
 		if err := json.Indent(&prettyJSON, body, "", "  "); err != nil {
-			EchoOut(string(body))
+			pterm.DefaultBasicText.Println(string(body))
 		} else {
-			EchoOut(prettyJSON.String())
+			pterm.DefaultBasicText.Println(prettyJSON.String())
 		}
 	} else {
-		EchoOut(string(body))
+		pterm.DefaultBasicText.Println(string(body))
 	}
 
 	return nil
@@ -167,16 +163,19 @@ func (a *ArcadyanGateway) Status() error {
 			}
 		}
 	}
+
 	info, err := a.Client.R().SetResult(&result).Get(InfoURL)
 	if err != nil {
 		return fmt.Errorf("failed to get registration status: %w",
 			err)
 	}
+
 	regStatus := "unknown"
 	if info.IsSuccess() {
 		regStatus = result.Signal.Generic.Registration
 	}
-	EchoOut("Registration status: " + regStatus)
+
+	pterm.Info.Println("Registration status: " + regStatus)
 
 	return nil
 }
@@ -240,41 +239,68 @@ func (a *ArcadyanGateway) printSignalResult(sig signalResult) {
 		a.printSignalMetrics(
 			"4G LTE Signal",
 			&sig.FourG.signalData,
-			"eNBID: "+strconv.Itoa(sig.FourG.ENBID),
+			[]string{"eNBID", strconv.Itoa(sig.FourG.ENBID)},
 		)
 	}
 
 	if sig.FiveG != nil {
-		var fiveGExtras []string
+		var fiveGExtras [][]string
 		if sig.FiveG.AntennaUsed != "" {
-			fiveGExtras = append(fiveGExtras, "Antenna: "+sig.FiveG.AntennaUsed)
+			fiveGExtras = append(fiveGExtras, []string{"Antenna", sig.FiveG.AntennaUsed})
 		}
-		fiveGExtras = append(fiveGExtras, "gNBID: "+strconv.Itoa(sig.FiveG.GNBID))
+
+		fiveGExtras = append(fiveGExtras, []string{"gNBID", strconv.Itoa(sig.FiveG.GNBID)})
 
 		a.printSignalMetrics("5G Signal", &sig.FiveG.signalData, fiveGExtras...)
 	}
 
-	EchoOut("")
-	EchoOut("=== Generic Info ===")
-	EchoOut("APN: " + sig.Generic.APN)
-	EchoOut(fmt.Sprintf("IPv6: %t", sig.Generic.HasIPv6))
-	EchoOut("Registration: " + sig.Generic.Registration)
-	EchoOut(fmt.Sprintf("Roaming: %t", sig.Generic.Roaming))
+	pterm.DefaultHeader.Println("Generic Info")
+
+	tableData := pterm.TableData{
+		{"Property", "Value"},
+		{"APN", sig.Generic.APN},
+		{"IPv6", strconv.FormatBool(sig.Generic.HasIPv6)},
+		{"Registration", sig.Generic.Registration},
+		{"Roaming", strconv.FormatBool(sig.Generic.Roaming)},
+	}
+	if err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Render(); err != nil {
+		pterm.Error.Println("Failed to render table:", err)
+	}
 }
 
-func (a *ArcadyanGateway) printSignalMetrics(header string, metrics *signalData, extras ...string) {
+func (a *ArcadyanGateway) printSignalMetrics(
+	header string,
+	metrics *signalData,
+	extras ...[]string,
+) {
+	const signalMetricRows = 6
+
 	rater := signal.NewRater()
-	EchoOut(fmt.Sprintf("=== %s ===", header))
-	EchoOut(fmt.Sprintf("Signal bars: %.0f", metrics.Bars))
+
+	pterm.DefaultHeader.Println(header)
+
+	tableData := make(pterm.TableData, 0, 2+len(extras)+signalMetricRows)
+	tableData = append(tableData,
+		[]string{"Metric", "Value"},
+		[]string{"Signal bars", fmt.Sprintf("%.0f", metrics.Bars)},
+	)
+
 	for _, extra := range extras {
-		EchoOut(extra)
+		tableData = append(tableData, extra)
 	}
-	EchoOut(fmt.Sprintf("Bands: %v", metrics.Bands))
-	EchoOut(rater.Format(rater.RateRSRP(metrics.RSRP)))
-	EchoOut(rater.Format(rater.RateRSRQ(metrics.RSRQ)))
-	EchoOut(rater.Format(rater.RateRSSI(metrics.RSSI)))
-	EchoOut(rater.Format(rater.RateSINR(metrics.SINR)))
-	EchoOut(fmt.Sprintf("CID: %d", metrics.CID))
+
+	tableData = append(tableData,
+		[]string{"Bands", fmt.Sprintf("%v", metrics.Bands)},
+		[]string{"RSRP", rater.Format(rater.RateRSRP(metrics.RSRP))},
+		[]string{"RSRQ", rater.Format(rater.RateRSRQ(metrics.RSRQ))},
+		[]string{"RSSI", rater.Format(rater.RateRSSI(metrics.RSSI))},
+		[]string{"SINR", rater.Format(rater.RateSINR(metrics.SINR))},
+		[]string{"CID", strconv.Itoa(metrics.CID)},
+	)
+
+	if err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Render(); err != nil {
+		pterm.Error.Println("Failed to render table:", err)
+	}
 }
 
 func (a *ArcadyanGateway) isLoggedIn() bool {

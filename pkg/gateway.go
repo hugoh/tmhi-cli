@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/pterm/pterm"
 )
 
 // Gateway defines the interface for T-Mobile gateway implementations.
@@ -56,11 +57,13 @@ func (gc *GatewayCommon) NewClient(
 	if gc.Client == nil {
 		gc.Client = resty.New()
 	}
+
 	gc.Client.
 		SetBaseURL("http://"+gatewayIP).
 		SetHeader("User-Agent", "tmhi-cli/"+version).
 		SetDebug(debug).
 		SetTimeout(timeout)
+
 	if retries > 0 {
 		gc.Client.SetRetryCount(retries)
 	}
@@ -69,7 +72,11 @@ func (gc *GatewayCommon) NewClient(
 // StatusCore checks if the gateway web interface is accessible.
 func (gc *GatewayCommon) StatusCore() {
 	resp, err := gc.Client.R().Head("/")
-	EchoStatus("Web interface up", err == nil && resp.IsSuccess())
+	if err == nil && resp.IsSuccess() {
+		pterm.Success.Println("Web interface up")
+	} else {
+		pterm.Error.Println("Web interface down")
+	}
 }
 
 // AddCredentials sets the username and password for gateway authentication.

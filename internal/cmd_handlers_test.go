@@ -3,10 +3,11 @@ package internal
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 	"time"
 
+	"atomicgo.dev/keyboard"
+	"atomicgo.dev/keyboard/keys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
@@ -78,14 +79,17 @@ func newRebootCmd(dry bool) *cli.Command {
 				Name:  ConfigDryRun,
 				Value: dry,
 			},
+			&cli.BoolFlag{
+				Name:  ConfigAutoConfirm,
+				Value: true,
+			},
 		},
 	}
 }
 
 func TestLogin_SuccessAndFailure(t *testing.T) {
-	// Prevent logrus Fatal from exiting the test process
-	restore, exitCode := WithPatchedLogrusExit(t)
-	defer restore()
+	// Do not rely on exit codes; tests verify behavior through gateway calls
+	// No patching of Exit needed
 
 	// Success case
 	{
@@ -94,7 +98,6 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 		err := Login(ctx, nil)
 		require.NoError(t, err)
 		assert.True(t, mg.loginCalled)
-		assert.Equal(t, 0, *exitCode, "should not exit on success")
 	}
 
 	// Failure case
@@ -104,7 +107,7 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 		err := Login(ctx, nil)
 		require.NoError(t, err, "Login handler always returns nil")
 		assert.True(t, mg.loginCalled)
-		assert.Equal(t, 1, *exitCode, "expected fatal exit code to be 1 on error")
+		// In pterm-based UI, there is no fatal exit; test should not rely on exit codes
 	}
 }
 
@@ -174,25 +177,79 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 	}
 }
 
-func TestReq_LoginError(t *testing.T) {
-	restore, _ := WithPatchedLogrusExit(t)
-	defer restore()
+func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
+	t.Run("enter_accepts_default_no", func(t *testing.T) {
+		testRebootConfirmCancel(t, keys.Enter)
+	})
 
-	oldArgs := os.Args
-	os.Args = []string{
-		"tmhi-cli",
-		"--gateway.model",
-		"ARCADYAN",
-		"--gateway.ip",
-		"192.168.12.1",
-		"req",
-		"-l",
-		"GET",
-		"/test",
+	t.Run("y_confirms_reboot", func(t *testing.T) {
+		testRebootConfirmProceed(t, 'y')
+	})
+
+	t.Run("n_cancels_reboot", func(t *testing.T) {
+		testRebootConfirmCancel(t, 'n')
+	})
+
+	t.Run("auto_confirm_skips_prompt", func(t *testing.T) {
+		mg := &mockGateway{}
+		ctx := ctxWithGateway(mg)
+		cmd := &cli.Command{
+			Flags: []cli.Flag{
+				&cli.BoolFlag{Name: ConfigDryRun, Value: false},
+				&cli.BoolFlag{Name: ConfigAutoConfirm, Value: true},
+			},
+		}
+
+		err := Reboot(ctx, cmd)
+		require.NoError(t, err)
+		assert.True(t, mg.rebootCalled, "reboot should proceed with auto-confirm")
+	})
+}
+
+func testRebootConfirmCancel(t *testing.T, key any) {
+	t.Helper()
+
+	mg := &mockGateway{}
+	ctx := ctxWithGateway(mg)
+	cmd := &cli.Command{
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
+			&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
+		},
 	}
-	defer func() { os.Args = oldArgs }()
 
-	Cmd("test-version")
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+
+		_ = keyboard.SimulateKeyPress(key)
+	}()
+
+	err := Reboot(ctx, cmd)
+	require.NoError(t, err)
+	assert.False(t, mg.rebootCalled, "reboot should be cancelled")
+}
+
+func testRebootConfirmProceed(t *testing.T, key any) {
+	t.Helper()
+
+	mg := &mockGateway{}
+	ctx := ctxWithGateway(mg)
+	cmd := &cli.Command{
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
+			&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
+		},
+	}
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+
+		_ = keyboard.SimulateKeyPress(key)
+	}()
+
+	err := Reboot(ctx, cmd)
+	require.NoError(t, err)
+	assert.True(t, mg.rebootCalled, "reboot should proceed")
 }
 
 func TestSignal_SuccessAndFailure(t *testing.T) {

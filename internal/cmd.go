@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/hugoh/tmhi-cli/pkg"
-	"github.com/sirupsen/logrus"
+	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
-	toml "github.com/urfave/cli-altsrc/v3/toml"
 	"github.com/urfave/cli/v3"
 )
 
@@ -40,16 +39,11 @@ const (
 	ConfigIP       string = ConfigGateway + "ip"
 	ConfigTimeout  string = "timeout"
 	ConfigRetries  string = "retries"
+	// ConfigAutoConfirm enables auto-confirm prompts.
+	ConfigAutoConfirm string = "yes"
 )
 
-// LogSetup configures logrus log level based on debug flag.
-func LogSetup(debugFlag bool) {
-	if debugFlag {
-		logrus.SetLevel(logrus.DebugLevel)
-	} else {
-		logrus.SetLevel(logrus.InfoLevel)
-	}
-}
+// (No global LogSetup; switched to pterm-based output and explicit checks)
 
 func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	gateway, err := getGateway(cmd.Version,
@@ -62,9 +56,11 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 		cmd.Bool(ConfigDebug),
 	)
 	if err != nil {
-		logrus.WithError(err).Fatal("could not instantiate gateway")
-		// NOTREACHED
+		pterm.Error.Println("could not instantiate gateway:", err)
+
+		return nil, err
 	}
+
 	newCtx := context.WithValue(ctx, gatewayContextKey, gateway)
 
 	return newCtx, nil
@@ -73,11 +69,12 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 // Login handles the login CLI command.
 func Login(ctx context.Context, _ *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
+
 	err := gateway.Login()
 	if err != nil {
-		logrus.WithError(err).Fatal("could not log in")
+		pterm.Error.Println("could not log in:", err)
 	} else {
-		logrus.Info("successfully logged in")
+		pterm.Success.Println("successfully logged in")
 	}
 
 	return nil
@@ -89,6 +86,7 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 	if cmd.NArg() != requiredArgsCount {
 		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
 	}
+
 	method := cmd.Args().Get(0)
 	path := cmd.Args().Get(1)
 	loginFirst := cmd.Bool("login")
@@ -99,6 +97,7 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("request failed: %w", err)
 		}
 	}
+
 	if err := gateway.Request(method, path); err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -120,7 +119,7 @@ func Info(ctx context.Context, _ *cli.Command) error {
 func Status(ctx context.Context, _ *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if err := gateway.Status(); err != nil {
-		logrus.WithError(err).Error("status check failed")
+		pterm.Error.Println("status check failed:", err)
 
 		return fmt.Errorf("status check failed: %w", err)
 	}
@@ -141,9 +140,22 @@ func Signal(ctx context.Context, _ *cli.Command) error {
 // Reboot handles the reboot CLI command.
 func Reboot(ctx context.Context, cmd *cli.Command) error {
 	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
-	err := gateway.Reboot(cmd.Bool(ConfigDryRun))
+
+	dryRun := cmd.Bool(ConfigDryRun)
+	if !dryRun && !cmd.Bool(ConfigAutoConfirm) {
+		confirm, _ := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(false).
+			Show("Are you sure you want to reboot the gateway?")
+		if !confirm {
+			pterm.Warning.Println("Reboot cancelled")
+
+			return nil
+		}
+	}
+
+	err := gateway.Reboot(dryRun)
 	if err != nil {
-		logrus.WithError(err).Error("could not reboot gateway")
+		pterm.Error.Println("could not reboot gateway:", err)
 
 		return fmt.Errorf("could not reboot gateway: %w", err)
 	}
@@ -161,64 +173,7 @@ func defaultConfigPath() string {
 }
 
 func buildFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag {
-	return []cli.Flag{
-		&cli.StringFlag{
-			Name:        ConfigConfig,
-			Aliases:     []string{"c"},
-			Usage:       "use the specified TOML configuration file",
-			Value:       defaultConfigPath(),
-			Destination: configFile,
-			TakesFile:   true,
-		},
-		&cli.BoolFlag{
-			Name:    ConfigDebug,
-			Aliases: []string{"d"},
-			Value:   false,
-			Usage:   "display debugging output in the console",
-		},
-		&cli.BoolFlag{
-			Name:    ConfigDryRun,
-			Aliases: []string{"D"},
-			Value:   false,
-			Usage:   "do not perform any change to the gateway",
-		},
-		&cli.StringFlag{
-			Name:     ConfigModel,
-			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigModel, configSource)),
-			Required: true,
-			Usage:    fmt.Sprintf("gateway model: options: %s, %s", ARCADYAN, NOK5G21),
-		},
-		&cli.StringFlag{
-			Name:    ConfigIP,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigIP, configSource)),
-			Value:   "192.168.12.1",
-			Usage:   "gateway IP",
-		},
-		&cli.StringFlag{
-			Name:    ConfigUsername,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigUsername, configSource)),
-			Value:   "admin",
-			Usage:   "admin username",
-		},
-		&cli.StringFlag{
-			Name:     ConfigPassword,
-			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigPassword, configSource)),
-			Required: false,
-			Usage:    "admin password",
-		},
-		&cli.IntFlag{
-			Name:    ConfigRetries,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
-			Value:   0,
-			Usage:   "number of retries",
-		},
-		&cli.DurationFlag{
-			Name:    ConfigTimeout,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
-			Value:   DefaultTimeout,
-			Usage:   "request timeout in seconds",
-		},
-	}
+	return buildFlagsBaseCore(configFile, configSource)
 }
 
 func buildCommands() []*cli.Command {
@@ -268,6 +223,7 @@ func buildCommands() []*cli.Command {
 // Cmd is the main entry point for the CLI application.
 func Cmd(version string) {
 	var configFile string
+
 	configSource := altsrc.NewStringPtrSourcer(&configFile)
 
 	app := &cli.Command{
@@ -280,6 +236,7 @@ func Cmd(version string) {
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
-		logrus.WithError(err).Fatal()
+		pterm.Fatal.Println("application error:", err)
+		os.Exit(1)
 	}
 }
