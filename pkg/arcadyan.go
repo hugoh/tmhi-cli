@@ -319,12 +319,14 @@ func (a *ArcadyanGateway) printSignalMetrics(
 		tableData = append(tableData, extra)
 	}
 
+	const signalFormat = "%v %u - %q %s"
+
 	tableData = append(tableData,
 		[]string{"Bands", fmt.Sprintf("%v", metrics.Bands)},
-		[]string{"RSRP", rater.Format(rater.RateRSRP(metrics.RSRP))},
-		[]string{"RSRQ", rater.Format(rater.RateRSRQ(metrics.RSRQ))},
-		[]string{"RSSI", rater.Format(rater.RateRSSI(metrics.RSSI))},
-		[]string{"SINR", rater.Format(rater.RateSINR(metrics.SINR))},
+		[]string{"RSRP", rater.FormatWith(signalFormat, rater.RateRSRP(metrics.RSRP))},
+		[]string{"RSRQ", rater.FormatWith(signalFormat, rater.RateRSRQ(metrics.RSRQ))},
+		[]string{"RSSI", rater.FormatWith(signalFormat, rater.RateRSSI(metrics.RSSI))},
+		[]string{"SINR", rater.FormatWith(signalFormat, rater.RateSINR(metrics.SINR))},
 		[]string{"CID", strconv.Itoa(metrics.CID)},
 	)
 
