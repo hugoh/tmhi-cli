@@ -101,7 +101,7 @@ func (n *NokiaGateway) Reboot(dryRun bool) error {
 	if resp.IsError() {
 		pterm.Error.Println("reboot failed", resp.StatusCode(), resp.String())
 
-		return ErrRebootFailed
+		return NewGatewayError("reboot", resp.StatusCode(), resp.String(), ErrRebootFailed)
 	}
 
 	pterm.Info.Println("successfully requested gateway rebooted")
@@ -156,18 +156,13 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 	if err != nil {
 		pterm.Error.Println("error while making login request", err)
 
-		return nil, fmt.Errorf("%w: %w", ErrAuthentication, err)
+		return nil, NewAuthError(0, err.Error())
 	}
 
 	if resp.IsError() {
 		pterm.Error.Println("error while making login request", resp.StatusCode(), resp.String())
 
-		return nil, fmt.Errorf(
-			"%w: status %d: %s",
-			ErrAuthentication,
-			resp.StatusCode(),
-			resp.String(),
-		)
+		return nil, NewAuthError(resp.StatusCode(), resp.String())
 	}
 
 	pterm.Debug.Println("got login response", loginResp)
@@ -176,7 +171,7 @@ func (n *NokiaGateway) getCredentials(nonceResp nonceResp) (*nokiaLoginResp, err
 	if loginResp.success() {
 		authErr = nil
 	} else {
-		authErr = fmt.Errorf("%w: no valid credentials returned", ErrAuthentication)
+		authErr = NewAuthError(0, "no valid credentials returned")
 	}
 
 	return &loginResp, authErr

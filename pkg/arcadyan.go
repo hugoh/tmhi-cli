@@ -50,6 +50,8 @@ func (a *ArcadyanGateway) Login() error {
 	reqPath := "/TMI/v1/auth/login"
 	pterm.Debug.Println("sending login request:", reqPath)
 
+	spinner, _ := pterm.DefaultSpinner.Start("Logging in...")
+
 	var loginResp struct {
 		Auth struct {
 			Expiration       int
@@ -64,20 +66,21 @@ func (a *ArcadyanGateway) Login() error {
 		SetResult(&loginResp).
 		Post(reqPath)
 	if err != nil {
+		spinner.Fail("Login request failed")
+
 		return fmt.Errorf("login request failed: failed to decode login response: %w", err)
 	}
 
 	if resp.IsError() {
-		return fmt.Errorf(
-			"%w: unexpected status %d: %s",
-			ErrAuthentication,
-			resp.StatusCode(),
-			resp.String(),
-		)
+		spinner.Fail(fmt.Sprintf("Login failed (status %d)", resp.StatusCode()))
+
+		return NewAuthError(resp.StatusCode(), resp.String())
 	}
 
 	if loginResp.Auth.Token == "" {
-		return fmt.Errorf("%w: login response missing auth token", ErrAuthentication)
+		spinner.Fail("Login response missing auth token")
+
+		return NewAuthError(0, "login response missing auth token")
 	}
 
 	a.credentials = arcadianLoginData{
@@ -86,6 +89,8 @@ func (a *ArcadyanGateway) Login() error {
 	}
 	a.Client.SetAuthToken(a.credentials.Token)
 	a.Authenticated = true
+
+	_ = spinner.WithRemoveWhenDone().Stop()
 
 	return nil
 }
@@ -107,15 +112,23 @@ func (a *ArcadyanGateway) Reboot(dryRun bool) error {
 		return nil
 	}
 
+	spinner, _ := pterm.DefaultSpinner.Start("Rebooting gateway...")
+
 	resp, err := a.Client.R().
 		Post(rebootRequestPath)
 	if err != nil {
+		spinner.Fail("Reboot request failed")
+
 		return fmt.Errorf("reboot request failed: %w", err)
 	}
 
 	if !resp.IsSuccess() {
-		return fmt.Errorf("%w: status %d: %s", ErrRebootFailed, resp.StatusCode(), resp.String())
+		spinner.Fail(fmt.Sprintf("Reboot failed (status %d)", resp.StatusCode()))
+
+		return NewGatewayError("reboot", resp.StatusCode(), resp.String(), ErrRebootFailed)
 	}
+
+	spinner.Success("Reboot command sent successfully")
 
 	return nil
 }
@@ -155,6 +168,8 @@ func (a *ArcadyanGateway) Request(method, path string) error {
 func (a *ArcadyanGateway) Status() error {
 	a.StatusCore()
 
+	spinner, _ := pterm.DefaultSpinner.Start("Fetching registration status...")
+
 	// Info
 	var result struct {
 		Signal struct {
@@ -166,8 +181,9 @@ func (a *ArcadyanGateway) Status() error {
 
 	info, err := a.Client.R().SetResult(&result).Get(InfoURL)
 	if err != nil {
-		return fmt.Errorf("failed to get registration status: %w",
-			err)
+		spinner.Fail("Request failed: " + err.Error())
+
+		return NewGatewayError("status", 0, "failed to get registration status", err)
 	}
 
 	regStatus := "unknown"
@@ -175,7 +191,16 @@ func (a *ArcadyanGateway) Status() error {
 		regStatus = result.Signal.Generic.Registration
 	}
 
-	pterm.Info.Println("Registration status: " + regStatus)
+	spinner.Info("Registration status: " + regStatus)
+
+	if !info.IsSuccess() {
+		return NewGatewayError(
+			"status",
+			info.StatusCode(),
+			ErrSignalFailed.Error(),
+			ErrSignalFailed,
+		)
+	}
 
 	return nil
 }
@@ -222,11 +247,16 @@ func (a *ArcadyanGateway) Signal() error {
 
 	info, err := a.Client.R().SetResult(&result).Get(InfoURL)
 	if err != nil {
-		return fmt.Errorf("failed to get signal info: %w", err)
+		return NewGatewayError("signal", 0, "failed to get signal info", err)
 	}
 
 	if !info.IsSuccess() {
-		return fmt.Errorf("%w: status %d", ErrSignalFailed, info.StatusCode())
+		return NewGatewayError(
+			"signal",
+			info.StatusCode(),
+			ErrSignalFailed.Error(),
+			ErrSignalFailed,
+		)
 	}
 
 	a.printSignalResult(result.Signal)

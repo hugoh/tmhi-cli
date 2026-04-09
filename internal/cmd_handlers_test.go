@@ -88,9 +88,6 @@ func newRebootCmd(dry bool) *cli.Command {
 }
 
 func TestLogin_SuccessAndFailure(t *testing.T) {
-	// Do not rely on exit codes; tests verify behavior through gateway calls
-	// No patching of Exit needed
-
 	// Success case
 	{
 		mg := &mockGateway{}
@@ -105,9 +102,9 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 		mg := &mockGateway{loginErr: errors.New("login failed")}
 		ctx := ctxWithGateway(mg)
 		err := Login(ctx, nil)
-		require.NoError(t, err, "Login handler always returns nil")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "login failed")
 		assert.True(t, mg.loginCalled)
-		// In pterm-based UI, there is no fatal exit; test should not rely on exit codes
 	}
 }
 

@@ -49,7 +49,7 @@ jobs:
       - &setup-mise
         uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
       - name: Test
-        run: mise run test
+        run: mise test
       - name: Coverage
         run: mise run covercheck
       - name: Upload coverage reports to Codecov
@@ -67,7 +67,7 @@ jobs:
       - *setup-go
       - *setup-mise
       - name: Build
-        run: mise run build
+        run: mise build
 
   release:
     runs-on: ubuntu-latest

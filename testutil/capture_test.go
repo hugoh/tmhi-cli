@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestCaptureStdout(t *testing.T) {
-	output := CaptureStdout(t, func() {
+func TestCaptureOutput(t *testing.T) {
+	output := CaptureOutput(t, func() {
 		fmt.Print("hello world") //nolint:forbidigo
 	})
 
@@ -16,8 +16,8 @@ func TestCaptureStdout(t *testing.T) {
 	}
 }
 
-func TestCaptureStdout_MultipleWrites(t *testing.T) {
-	output := CaptureStdout(t, func() {
+func TestCaptureOutput_MultipleWrites(t *testing.T) {
+	output := CaptureOutput(t, func() {
 		fmt.Print("line1") //nolint:forbidigo
 		fmt.Print("line2") //nolint:forbidigo
 	})

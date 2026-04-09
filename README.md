@@ -25,6 +25,9 @@ COMMANDS:
 GLOBAL OPTIONS:
    --config string, -c string  use the specified TOML configuration file (default: "/Users/hugoh/.tmhi-cli.toml")
    --debug, -d                 display debugging output in the console
+   --no-color                  disable colored output
+   --quiet, -q                 quiet mode, suppresses output
+   --yes, -y                   skip confirmation prompts
    --dry-run, -D               do not perform any change to the gateway
    --gateway.model string      gateway model: options: ARCADYAN, NOK5G21
    --gateway.ip string         gateway IP (default: "192.168.12.1")
@@ -33,6 +36,7 @@ GLOBAL OPTIONS:
    --retries int               number of retries (default: 0)
    --timeout duration          request timeout in seconds (default: 5s)
    --help, -h                  show help
+   --version, -v               print the version
 ```
 
 ## See also
