@@ -245,12 +245,18 @@ func (a *ArcadyanGateway) Signal() error {
 		Signal signalResult `json:"signal"`
 	}
 
+	spinner, _ := pterm.DefaultSpinner.Start("Fetching signal information...")
+
 	info, err := a.Client.R().SetResult(&result).Get(InfoURL)
 	if err != nil {
+		spinner.Fail("Failed to get signal info")
+
 		return NewGatewayError("signal", 0, "failed to get signal info", err)
 	}
 
 	if !info.IsSuccess() {
+		spinner.Fail(fmt.Sprintf("Signal request failed (status %d)", info.StatusCode()))
+
 		return NewGatewayError(
 			"signal",
 			info.StatusCode(),
@@ -258,6 +264,8 @@ func (a *ArcadyanGateway) Signal() error {
 			ErrSignalFailed,
 		)
 	}
+
+	_ = spinner.WithRemoveWhenDone().Stop()
 
 	a.printSignalResult(result.Signal)
 
@@ -311,21 +319,42 @@ func (a *ArcadyanGateway) printSignalMetrics(
 
 	tableData := make(pterm.TableData, 0, 2+len(extras)+signalMetricRows)
 	tableData = append(tableData,
-		[]string{"Metric", "Value"},
-		[]string{"Signal bars", fmt.Sprintf("%.0f", metrics.Bars)},
+		[]string{"Metric", "Value", "Rating"},
+		[]string{"Signal bars", fmt.Sprintf("%.0f", metrics.Bars), ""},
 	)
 
 	for _, extra := range extras {
-		tableData = append(tableData, extra)
+		tableData = append(tableData, append(extra, ""))
 	}
 
+	const (
+		valueFormat  = "%v %u"
+		ratingFormat = "%q %s"
+	)
+
 	tableData = append(tableData,
-		[]string{"Bands", fmt.Sprintf("%v", metrics.Bands)},
-		[]string{"RSRP", rater.Format(rater.RateRSRP(metrics.RSRP))},
-		[]string{"RSRQ", rater.Format(rater.RateRSRQ(metrics.RSRQ))},
-		[]string{"RSSI", rater.Format(rater.RateRSSI(metrics.RSSI))},
-		[]string{"SINR", rater.Format(rater.RateSINR(metrics.SINR))},
-		[]string{"CID", strconv.Itoa(metrics.CID)},
+		[]string{"Bands", fmt.Sprintf("%v", metrics.Bands), ""},
+		[]string{
+			"RSRP",
+			rater.FormatWith(valueFormat, rater.RateRSRP(metrics.RSRP)),
+			rater.FormatWith(ratingFormat, rater.RateRSRP(metrics.RSRP)),
+		},
+		[]string{
+			"RSRQ",
+			rater.FormatWith(valueFormat, rater.RateRSRQ(metrics.RSRQ)),
+			rater.FormatWith(ratingFormat, rater.RateRSRQ(metrics.RSRQ)),
+		},
+		[]string{
+			"RSSI",
+			rater.FormatWith(valueFormat, rater.RateRSSI(metrics.RSSI)),
+			rater.FormatWith(ratingFormat, rater.RateRSSI(metrics.RSSI)),
+		},
+		[]string{
+			"SINR",
+			rater.FormatWith(valueFormat, rater.RateSINR(metrics.SINR)),
+			rater.FormatWith(ratingFormat, rater.RateSINR(metrics.SINR)),
+		},
+		[]string{"CID", strconv.Itoa(metrics.CID), ""},
 	)
 
 	if err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Render(); err != nil {
