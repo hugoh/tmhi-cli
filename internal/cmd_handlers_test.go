@@ -8,6 +8,7 @@ import (
 
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
+	"github.com/hugoh/tmhi-cli/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
@@ -68,10 +69,6 @@ func (m *mockGateway) Signal() error {
 	return m.signalErr
 }
 
-func ctxWithGateway(mg *mockGateway) context.Context {
-	return context.WithValue(context.Background(), gatewayContextKey, mg)
-}
-
 func newRebootCmd(dry bool) *cli.Command {
 	return &cli.Command{
 		Flags: []cli.Flag{
@@ -88,11 +85,17 @@ func newRebootCmd(dry bool) *cli.Command {
 }
 
 func TestLogin_SuccessAndFailure(t *testing.T) {
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	// Success case
 	{
 		mg := &mockGateway{}
-		ctx := ctxWithGateway(mg)
-		err := Login(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Login(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.loginCalled)
 	}
@@ -100,8 +103,10 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 	// Failure case
 	{
 		mg := &mockGateway{loginErr: errors.New("login failed")}
-		ctx := ctxWithGateway(mg)
-		err := Login(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Login(context.Background(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "login failed")
 		assert.True(t, mg.loginCalled)
@@ -109,11 +114,17 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 }
 
 func TestInfo_SuccessAndFailure(t *testing.T) {
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	// Success
 	{
 		mg := &mockGateway{}
-		ctx := ctxWithGateway(mg)
-		err := Info(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Info(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.infoCalled)
 	}
@@ -121,8 +132,10 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 	// Failure
 	{
 		mg := &mockGateway{infoErr: errors.New("info boom")}
-		ctx := ctxWithGateway(mg)
-		err := Info(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Info(context.Background(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "info command failed")
 		assert.True(t, mg.infoCalled)
@@ -130,11 +143,17 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 }
 
 func TestStatus_SuccessAndFailure(t *testing.T) {
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	// Success
 	{
 		mg := &mockGateway{}
-		ctx := ctxWithGateway(mg)
-		err := Status(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Status(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.statusCalled)
 	}
@@ -142,8 +161,10 @@ func TestStatus_SuccessAndFailure(t *testing.T) {
 	// Failure
 	{
 		mg := &mockGateway{statusErr: errors.New("status boom")}
-		ctx := ctxWithGateway(mg)
-		err := Status(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Status(context.Background(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "status check failed")
 		assert.True(t, mg.statusCalled)
@@ -151,12 +172,18 @@ func TestStatus_SuccessAndFailure(t *testing.T) {
 }
 
 func TestReboot_DryRunFlagAndFailure(t *testing.T) {
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	// Dry-run true
 	{
 		mg := &mockGateway{}
-		ctx := ctxWithGateway(mg)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
 		cmd := newRebootCmd(true)
-		err := Reboot(ctx, cmd)
+		err := Reboot(context.Background(), cmd)
 		require.NoError(t, err)
 		assert.True(t, mg.rebootCalled)
 		assert.True(t, mg.rebootDryRun)
@@ -165,9 +192,11 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 	// Dry-run false with error
 	{
 		mg := &mockGateway{rebootErr: errors.New("reboot boom")}
-		ctx := ctxWithGateway(mg)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
 		cmd := newRebootCmd(false)
-		err := Reboot(ctx, cmd)
+		err := Reboot(context.Background(), cmd)
 		require.Error(t, err)
 		assert.True(t, mg.rebootCalled)
 		assert.False(t, mg.rebootDryRun)
@@ -175,6 +204,10 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 }
 
 func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	t.Run("enter_accepts_default_no", func(t *testing.T) {
 		testRebootConfirmCancel(t, keys.Enter)
 	})
@@ -189,7 +222,9 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 
 	t.Run("auto_confirm_skips_prompt", func(t *testing.T) {
 		mg := &mockGateway{}
-		ctx := ctxWithGateway(mg)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
 		cmd := &cli.Command{
 			Flags: []cli.Flag{
 				&cli.BoolFlag{Name: ConfigDryRun, Value: false},
@@ -197,7 +232,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 			},
 		}
 
-		err := Reboot(ctx, cmd)
+		err := Reboot(context.Background(), cmd)
 		require.NoError(t, err)
 		assert.True(t, mg.rebootCalled, "reboot should proceed with auto-confirm")
 	})
@@ -206,8 +241,14 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 func testRebootConfirmCancel(t *testing.T, key any) {
 	t.Helper()
 
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	mg := &mockGateway{}
-	ctx := ctxWithGateway(mg)
+	initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		return mg, nil
+	}
 	cmd := &cli.Command{
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
@@ -221,7 +262,7 @@ func testRebootConfirmCancel(t *testing.T, key any) {
 		_ = keyboard.SimulateKeyPress(key)
 	}()
 
-	err := Reboot(ctx, cmd)
+	err := Reboot(context.Background(), cmd)
 	require.NoError(t, err)
 	assert.False(t, mg.rebootCalled, "reboot should be cancelled")
 }
@@ -229,8 +270,14 @@ func testRebootConfirmCancel(t *testing.T, key any) {
 func testRebootConfirmProceed(t *testing.T, key any) {
 	t.Helper()
 
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	mg := &mockGateway{}
-	ctx := ctxWithGateway(mg)
+	initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		return mg, nil
+	}
 	cmd := &cli.Command{
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
@@ -244,17 +291,23 @@ func testRebootConfirmProceed(t *testing.T, key any) {
 		_ = keyboard.SimulateKeyPress(key)
 	}()
 
-	err := Reboot(ctx, cmd)
+	err := Reboot(context.Background(), cmd)
 	require.NoError(t, err)
 	assert.True(t, mg.rebootCalled, "reboot should proceed")
 }
 
 func TestSignal_SuccessAndFailure(t *testing.T) {
+	original := initGatewayFunc
+
+	defer func() { initGatewayFunc = original }()
+
 	// Success
 	{
 		mg := &mockGateway{}
-		ctx := ctxWithGateway(mg)
-		err := Signal(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Signal(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.signalCalled)
 	}
@@ -262,8 +315,10 @@ func TestSignal_SuccessAndFailure(t *testing.T) {
 	// Failure
 	{
 		mg := &mockGateway{signalErr: errors.New("signal boom")}
-		ctx := ctxWithGateway(mg)
-		err := Signal(ctx, nil)
+		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+			return mg, nil
+		}
+		err := Signal(context.Background(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "signal command failed")
 		assert.True(t, mg.signalCalled)
