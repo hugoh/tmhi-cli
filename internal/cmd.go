@@ -13,12 +13,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-type contextKey string
-
-const (
-	gatewayContextKey contextKey = "gateway"
-)
-
 // Gateway model constants.
 const (
 	ARCADYAN       string        = "ARCADYAN"
@@ -26,22 +20,12 @@ const (
 	DefaultTimeout time.Duration = 5 * time.Second
 )
 
-func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+//nolint:gochecknoglobals
+var initGatewayFunc = initGateway
+
+//nolint:ireturn
+func initGateway(cmd *cli.Command) (pkg.Gateway, error) {
 	debug := cmd.Bool(ConfigDebug)
-	noColor := cmd.Bool(ConfigNoColor)
-	quiet := cmd.Bool(ConfigQuiet)
-
-	if debug {
-		pterm.EnableDebugMessages()
-	}
-
-	if noColor {
-		pterm.DisableStyling()
-	}
-
-	if quiet {
-		pterm.DisableOutput()
-	}
 
 	gateway, err := getGateway(cmd.Version,
 		cmd.String(ConfigModel),
@@ -58,16 +42,17 @@ func commonContext(ctx context.Context, cmd *cli.Command) (context.Context, erro
 		return nil, err
 	}
 
-	newCtx := context.WithValue(ctx, gatewayContextKey, gateway)
-
-	return newCtx, nil
+	return gateway, nil
 }
 
 // Login handles the login CLI command.
-func Login(ctx context.Context, _ *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
+func Login(_ context.Context, cmd *cli.Command) error {
+	gateway, err := initGatewayFunc(cmd)
+	if err != nil {
+		return err
+	}
 
-	err := gateway.Login()
+	err = gateway.Login()
 	if err != nil {
 		pterm.Error.Println("could not log in:", err)
 
@@ -80,7 +65,12 @@ func Login(ctx context.Context, _ *cli.Command) error {
 }
 
 // Req handles the req CLI command for custom HTTP requests.
-func Req(ctx context.Context, cmd *cli.Command) error {
+func Req(_ context.Context, cmd *cli.Command) error {
+	gateway, err := initGatewayFunc(cmd)
+	if err != nil {
+		return err
+	}
+
 	const requiredArgsCount = 2
 	if cmd.NArg() != requiredArgsCount {
 		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
@@ -90,7 +80,6 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 	path := cmd.Args().Get(1)
 	loginFirst := cmd.Bool("login")
 
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
 	if loginFirst {
 		if err := gateway.Login(); err != nil {
 			return fmt.Errorf("request failed: %w", err)
@@ -105,8 +94,12 @@ func Req(ctx context.Context, cmd *cli.Command) error {
 }
 
 // Info handles the info CLI command.
-func Info(ctx context.Context, _ *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
+func Info(_ context.Context, cmd *cli.Command) error {
+	gateway, err := initGatewayFunc(cmd)
+	if err != nil {
+		return err
+	}
+
 	if err := gateway.Info(); err != nil {
 		return fmt.Errorf("info command failed: %w", err)
 	}
@@ -115,8 +108,12 @@ func Info(ctx context.Context, _ *cli.Command) error {
 }
 
 // Status handles the status CLI command.
-func Status(ctx context.Context, _ *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
+func Status(_ context.Context, cmd *cli.Command) error {
+	gateway, err := initGatewayFunc(cmd)
+	if err != nil {
+		return err
+	}
+
 	if err := gateway.Status(); err != nil {
 		pterm.Error.Println("status check failed:", err)
 
@@ -127,8 +124,12 @@ func Status(ctx context.Context, _ *cli.Command) error {
 }
 
 // Signal handles the signal CLI command.
-func Signal(ctx context.Context, _ *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
+func Signal(_ context.Context, cmd *cli.Command) error {
+	gateway, err := initGatewayFunc(cmd)
+	if err != nil {
+		return err
+	}
+
 	if err := gateway.Signal(); err != nil {
 		return fmt.Errorf("signal command failed: %w", err)
 	}
@@ -137,8 +138,11 @@ func Signal(ctx context.Context, _ *cli.Command) error {
 }
 
 // Reboot handles the reboot CLI command.
-func Reboot(ctx context.Context, cmd *cli.Command) error {
-	gateway, _ := ctx.Value(gatewayContextKey).(pkg.Gateway)
+func Reboot(_ context.Context, cmd *cli.Command) error {
+	gateway, err := initGatewayFunc(cmd)
+	if err != nil {
+		return err
+	}
 
 	dryRun := cmd.Bool(ConfigDryRun)
 	if !cmd.Bool(ConfigAutoConfirm) {
@@ -152,7 +156,7 @@ func Reboot(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	err := gateway.Reboot(dryRun)
+	err = gateway.Reboot(dryRun)
 	if err != nil {
 		pterm.Error.Println("could not reboot gateway:", err)
 
@@ -183,7 +187,6 @@ func Cmd(version string) {
 		Version:  version,
 		Flags:    cmdFlags(&configFile, configSource),
 		Commands: cmdCommands(),
-		Before:   commonContext,
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {

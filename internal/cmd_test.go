@@ -26,7 +26,7 @@ func TestBuildFlags(t *testing.T) {
 
 	flags := cmdFlags(&configFile, nil)
 
-	assert.Len(t, flags, 12)
+	assert.Len(t, flags, 11)
 }
 
 func TestBuildCommands(t *testing.T) {

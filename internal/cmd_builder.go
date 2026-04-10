@@ -1,8 +1,10 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	toml "github.com/urfave/cli-altsrc/v3/toml"
 	"github.com/urfave/cli/v3"
@@ -34,8 +36,16 @@ func cmdCommands() []*cli.Command {
 			Action: Login,
 		},
 		{
-			Name:   "reboot",
-			Usage:  "Reboot the router",
+			Name:  "reboot",
+			Usage: "Reboot the router",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    ConfigAutoConfirm,
+					Aliases: []string{"y"},
+					Value:   false,
+					Usage:   "skip confirmation prompts",
+				},
+			},
 			Action: Reboot,
 		},
 		{
@@ -85,23 +95,38 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			Aliases: []string{"d"},
 			Value:   false,
 			Usage:   "display debugging output in the console",
+			Action: func(_ context.Context, _ *cli.Command, v bool) error {
+				if v {
+					pterm.EnableDebugMessages()
+				}
+
+				return nil
+			},
 		},
 		&cli.BoolFlag{
 			Name:  ConfigNoColor,
 			Value: false,
 			Usage: "disable colored output",
+			Action: func(_ context.Context, _ *cli.Command, v bool) error {
+				if v {
+					pterm.DisableStyling()
+				}
+
+				return nil
+			},
 		},
 		&cli.BoolFlag{
 			Name:    ConfigQuiet,
 			Aliases: []string{"q"},
 			Value:   false,
 			Usage:   "quiet mode, suppresses output",
-		},
-		&cli.BoolFlag{
-			Name:    ConfigAutoConfirm,
-			Aliases: []string{"y"},
-			Value:   false,
-			Usage:   "skip confirmation prompts",
+			Action: func(_ context.Context, _ *cli.Command, v bool) error {
+				if v {
+					pterm.DisableOutput()
+				}
+
+				return nil
+			},
 		},
 		&cli.BoolFlag{
 			Name:    ConfigDryRun,
