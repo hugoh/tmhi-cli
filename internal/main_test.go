@@ -12,10 +12,15 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	os.Setenv("HOME", dir)
+	if err := os.Setenv("HOME", dir); err != nil {
+		os.Exit(1)
+	}
 
 	code := m.Run()
 
-	os.RemoveAll(dir)
+	if err := os.RemoveAll(dir); err != nil {
+		os.Exit(1)
+	}
+
 	os.Exit(code)
 }
