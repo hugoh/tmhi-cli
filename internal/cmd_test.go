@@ -1,24 +1,28 @@
 package internal
 
 import (
+	"context"
 	"os"
 	"testing"
 
 	"github.com/hugoh/tmhi-cli/testutil"
+	"github.com/pterm/pterm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli/v3"
 )
 
 func TestDefaultConfigPath(t *testing.T) {
 	path := defaultConfigPath()
-	assert.NotEmpty(t, path)
-	assert.Contains(t, path, ".tmhi-cli.toml")
+	require.NotEmpty(t, path)
+	require.Contains(t, path, ".tmhi-cli.toml")
 }
 
 func TestDefaultConfigPath_HomeError(t *testing.T) {
 	t.Setenv("HOME", "")
 
 	path := defaultConfigPath()
-	assert.Equal(t, ".tmhi-cli.toml", path)
+	require.Equal(t, ".tmhi-cli.toml", path)
 }
 
 func TestBuildFlags(t *testing.T) {
@@ -26,19 +30,19 @@ func TestBuildFlags(t *testing.T) {
 
 	flags := cmdFlags(&configFile, nil)
 
-	assert.Len(t, flags, 11)
+	require.Len(t, flags, 11)
 }
 
 func TestBuildCommands(t *testing.T) {
 	commands := cmdCommands()
 
-	assert.Len(t, commands, 6)
-	assert.Equal(t, "login", commands[0].Name)
-	assert.Equal(t, "reboot", commands[1].Name)
-	assert.Equal(t, "info", commands[2].Name)
-	assert.Equal(t, "status", commands[3].Name)
-	assert.Equal(t, "signal", commands[4].Name)
-	assert.Equal(t, "req", commands[5].Name)
+	require.Len(t, commands, 6)
+	require.Equal(t, "login", commands[0].Name)
+	require.Equal(t, "reboot", commands[1].Name)
+	require.Equal(t, "info", commands[2].Name)
+	require.Equal(t, "status", commands[3].Name)
+	require.Equal(t, "signal", commands[4].Name)
+	require.Equal(t, "req", commands[5].Name)
 }
 
 func TestCmd_Help(t *testing.T) {
@@ -72,5 +76,74 @@ func TestCmd_Version(t *testing.T) {
 		"expected version output to contain %q, got: %q",
 		testVersion,
 		out,
+	)
+}
+
+func TestSetupColor_Never(t *testing.T) {
+	// Reset pterm state before test
+	pterm.EnableStyling()
+
+	cmd := &cli.Command{
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  ConfigColor,
+				Value: "never",
+			},
+		},
+	}
+
+	// Simulate parsing the flag
+	_ = cmd.Set("color", "never")
+
+	_, err := setupColor(context.Background(), cmd)
+	require.NoError(t, err)
+	assert.True(t, pterm.RawOutput, "pterm.RawOutput should be true after --color=never")
+}
+
+func TestSetupColor_Always(t *testing.T) {
+	// First disable, then test that "always" keeps colors enabled
+	pterm.DisableStyling()
+	pterm.EnableStyling()
+
+	cmd := &cli.Command{
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  ConfigColor,
+				Value: "always",
+			},
+		},
+	}
+
+	_ = cmd.Set("color", "always")
+
+	_, err := setupColor(context.Background(), cmd)
+	require.NoError(t, err)
+	assert.False(t, pterm.RawOutput, "pterm.RawOutput should be false after --color=always")
+}
+
+func TestSetupColor_AutoDefault(t *testing.T) {
+	// Test that --color=auto (the default) correctly detects terminal state
+	// When stdout is not a terminal (like in tests), styling should be disabled
+	pterm.EnableStyling()
+
+	cmd := &cli.Command{
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  ConfigColor,
+				Value: "auto",
+			},
+		},
+	}
+
+	// Don't set the flag - test default behavior
+	_, err := setupColor(context.Background(), cmd)
+	require.NoError(t, err)
+
+	// In test environment, stdout is typically not a terminal
+	// so styling should be disabled
+	assert.True(
+		t,
+		pterm.RawOutput,
+		"pterm.RawOutput should be true in non-terminal environment with --color=auto",
 	)
 }

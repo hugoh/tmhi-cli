@@ -3,14 +3,12 @@ package internal
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	toml "github.com/urfave/cli-altsrc/v3/toml"
 	clival "github.com/urfave/cli-validation"
 	"github.com/urfave/cli/v3"
-	"golang.org/x/term"
 )
 
 // Global config instance for flag destinations.
@@ -35,11 +33,6 @@ const (
 	ConfigTimeout     string = "timeout"
 	ConfigUsername    string = ConfigLogin + "username"
 )
-
-func termIsTerminal() bool {
-	//nolint:gosec // Fd() returns a valid int on all platforms
-	return term.IsTerminal(int(os.Stdout.Fd()))
-}
 
 func cmdCommands() []*cli.Command {
 	return []*cli.Command{
@@ -122,20 +115,6 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			Value:     "auto",
 			Usage:     "colorize output: always, never, auto",
 			Validator: clival.Enum("always", "never", "auto"),
-			Action: func(_ context.Context, _ *cli.Command, value string) error {
-				switch value {
-				case "always":
-					// pterm default
-				case "auto":
-					if !termIsTerminal() {
-						pterm.DisableStyling()
-					}
-				case "never":
-					pterm.DisableStyling()
-				}
-
-				return nil
-			},
 		},
 		&cli.BoolFlag{
 			Name:    ConfigQuiet,
