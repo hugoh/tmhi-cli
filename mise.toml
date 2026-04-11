@@ -44,7 +44,7 @@ run = ["go clean", "rm -f ${COVEROUT}"]
 description = "Fix lint issues"
 run = "golangci-lint run --fix ./..."
 
-[tasks.fmt]
+[tasks.format]
 description = "Format the code"
 run = ["golangci-lint fmt ./...", "prettier --write ."]
 
