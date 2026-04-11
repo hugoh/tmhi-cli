@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hugoh/tmhi-cli/pkg"
 	"github.com/pterm/pterm"
@@ -13,31 +12,31 @@ import (
 var ErrUnknownGateway = errors.New("unknown gateway")
 
 // getGateway returns a gateway instance based on the model type.
-// Returns interface because this is a factory function that creates
-// different concrete types (ArcadyanGateway, NokiaGateway) based on input.
 //
 //nolint:ireturn
-func getGateway(
-	version, model, username, password, gatewayIP string,
-	timeout time.Duration,
-	retries int,
-	debug bool,
-) (pkg.Gateway, error) {
+func getGateway(cfg *Config) (pkg.Gateway, error) {
 	var gateway pkg.Gateway
 
-	switch model {
+	switch cfg.Model {
 	case "ARCADYAN":
 		gateway = pkg.NewArcadyanGateway()
 	case "NOK5G21":
 		gateway = pkg.NewNokiaGateway()
 	default:
-		pterm.Error.Println("unsupported gateway:", model)
+		pterm.Error.Println("unsupported gateway:", cfg.Model)
 
-		return nil, fmt.Errorf("%w: %s", ErrUnknownGateway, model)
+		return nil, fmt.Errorf("%w: %s", ErrUnknownGateway, cfg.Model)
 	}
 
-	gateway.NewClient(version, gatewayIP, timeout, retries, debug)
-	gateway.AddCredentials(username, password)
+	gateway.NewClient(&pkg.GatewayConfig{
+		IP:       cfg.IP,
+		Username: cfg.Username,
+		Password: cfg.Password,
+		Timeout:  cfg.Timeout,
+		Retries:  cfg.Retries,
+		Debug:    cfg.Debug,
+	})
+	gateway.AddCredentials(cfg.Username, cfg.Password)
 
 	return gateway, nil
 }

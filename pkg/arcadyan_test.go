@@ -249,7 +249,6 @@ func TestArcadyanGateway_Request_Methods(t *testing.T) {
 	})
 }
 
-//nolint:funlen // test function with multiple sub-tests
 func TestArcadyanGateway_Signal(t *testing.T) {
 	t.Run("successful signal retrieval with 4g and 5g", func(t *testing.T) {
 		body := `{

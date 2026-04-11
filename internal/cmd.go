@@ -24,18 +24,8 @@ const (
 var initGatewayFunc = initGateway
 
 //nolint:ireturn
-func initGateway(cmd *cli.Command) (pkg.Gateway, error) {
-	debug := cmd.Bool(ConfigDebug)
-
-	gateway, err := getGateway(cmd.Version,
-		cmd.String(ConfigModel),
-		cmd.String(ConfigUsername),
-		cmd.String(ConfigPassword),
-		cmd.String(ConfigIP),
-		cmd.Duration(ConfigTimeout),
-		cmd.Int(ConfigRetries),
-		debug,
-	)
+func initGateway(_ *Config) (pkg.Gateway, error) {
+	gateway, err := getGateway(appConfig)
 	if err != nil {
 		pterm.Error.Println("could not instantiate gateway:", err)
 
@@ -46,8 +36,8 @@ func initGateway(cmd *cli.Command) (pkg.Gateway, error) {
 }
 
 // Login handles the login CLI command.
-func Login(_ context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(cmd)
+func Login(_ context.Context, _ *cli.Command) error {
+	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
@@ -66,7 +56,7 @@ func Login(_ context.Context, cmd *cli.Command) error {
 
 // Req handles the req CLI command for custom HTTP requests.
 func Req(_ context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(cmd)
+	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
@@ -94,8 +84,8 @@ func Req(_ context.Context, cmd *cli.Command) error {
 }
 
 // Info handles the info CLI command.
-func Info(_ context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(cmd)
+func Info(_ context.Context, _ *cli.Command) error {
+	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
@@ -108,8 +98,8 @@ func Info(_ context.Context, cmd *cli.Command) error {
 }
 
 // Status handles the status CLI command.
-func Status(_ context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(cmd)
+func Status(_ context.Context, _ *cli.Command) error {
+	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
@@ -124,8 +114,8 @@ func Status(_ context.Context, cmd *cli.Command) error {
 }
 
 // Signal handles the signal CLI command.
-func Signal(_ context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(cmd)
+func Signal(_ context.Context, _ *cli.Command) error {
+	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
@@ -139,12 +129,11 @@ func Signal(_ context.Context, cmd *cli.Command) error {
 
 // Reboot handles the reboot CLI command.
 func Reboot(_ context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(cmd)
+	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
-	dryRun := cmd.Bool(ConfigDryRun)
 	if !cmd.Bool(ConfigAutoConfirm) {
 		confirm, _ := pterm.DefaultInteractiveConfirm.
 			WithDefaultValue(false).
@@ -156,7 +145,7 @@ func Reboot(_ context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	err = gateway.Reboot(dryRun)
+	err = gateway.Reboot(appConfig.DryRun)
 	if err != nil {
 		pterm.Error.Println("could not reboot gateway:", err)
 
@@ -187,6 +176,11 @@ func Cmd(version string) {
 		Version:  version,
 		Flags:    cmdFlags(&configFile, configSource),
 		Commands: cmdCommands(),
+		OnUsageError: func(_ context.Context, cmd *cli.Command, err error, _ bool) error {
+			_, _ = fmt.Fprintf(cmd.ErrWriter, "error: %v\n", err)
+
+			return err
+		},
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {

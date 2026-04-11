@@ -17,42 +17,46 @@ func TestGateway(t *testing.T) {
 	)
 
 	t.Run("Nokia gateway creation", func(t *testing.T) {
-		g, err := getGateway("test-version", NOK5G21, testUser, testPass, testIP, 0, 0, false)
+		cfg := &Config{Model: NOK5G21, Username: testUser, Password: testPass, IP: testIP}
+		g, err := getGateway(cfg)
 		require.NoError(t, err)
 		assert.NotNil(t, g)
 		assert.IsType(t, &pkg.NokiaGateway{}, g)
 	})
 
 	t.Run("Arcadyan gateway creation", func(t *testing.T) {
-		g, err := getGateway("test-version", ARCADYAN, testUser, testPass, testIP, 0, 0, false)
+		cfg := &Config{Model: ARCADYAN, Username: testUser, Password: testPass, IP: testIP}
+		g, err := getGateway(cfg)
 		require.NoError(t, err)
 		assert.NotNil(t, g)
 		assert.IsType(t, &pkg.ArcadyanGateway{}, g)
 	})
 
 	t.Run("Unknown gateway error", func(t *testing.T) {
-		g, err := getGateway("test-version", "invalid", testUser, testPass, testIP, 0, 0, false)
+		cfg := &Config{Model: "invalid", Username: testUser, Password: testPass, IP: testIP}
+		g, err := getGateway(cfg)
 		require.Error(t, err)
 		assert.Nil(t, g)
 	})
 
 	t.Run("Missing credentials is not an error", func(t *testing.T) {
-		g, err := getGateway("test-version", NOK5G21, "", "", testIP, 0, 0, false)
+		cfg := &Config{Model: NOK5G21, Username: "", Password: "", IP: testIP}
+		g, err := getGateway(cfg)
 		require.NoError(t, err)
 		assert.NotNil(t, g)
 	})
 
 	t.Run("Client configuration", func(t *testing.T) {
-		g, err := getGateway(
-			"test-version",
-			NOK5G21,
-			testUser,
-			testPass,
-			testIP,
-			5*time.Second,
-			3,
-			true,
-		)
+		cfg := &Config{
+			Model:    NOK5G21,
+			Username: testUser,
+			Password: testPass,
+			IP:       testIP,
+			Timeout:  5 * time.Second,
+			Retries:  3,
+			Debug:    true,
+		}
+		g, err := getGateway(cfg)
 		require.NoError(t, err)
 
 		nokia, ok := g.(*pkg.NokiaGateway)

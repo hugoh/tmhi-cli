@@ -30,8 +30,8 @@ type mockGateway struct {
 	signalErr     error
 }
 
-func (m *mockGateway) NewClient(_ string, _ string, _ time.Duration, _ int, _ bool) {}
-func (m *mockGateway) AddCredentials(_ string, _ string)                            {}
+func (m *mockGateway) NewClient(_ *pkg.GatewayConfig)    {}
+func (m *mockGateway) AddCredentials(_ string, _ string) {}
 func (m *mockGateway) Login() error {
 	m.loginCalled = true
 
@@ -92,7 +92,7 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 	// Success case
 	{
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Login(context.Background(), nil)
@@ -103,7 +103,7 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 	// Failure case
 	{
 		mg := &mockGateway{loginErr: errors.New("login failed")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Login(context.Background(), nil)
@@ -121,7 +121,7 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 	// Success
 	{
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Info(context.Background(), nil)
@@ -132,7 +132,7 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 	// Failure
 	{
 		mg := &mockGateway{infoErr: errors.New("info boom")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Info(context.Background(), nil)
@@ -150,7 +150,7 @@ func TestStatus_SuccessAndFailure(t *testing.T) {
 	// Success
 	{
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Status(context.Background(), nil)
@@ -161,7 +161,7 @@ func TestStatus_SuccessAndFailure(t *testing.T) {
 	// Failure
 	{
 		mg := &mockGateway{statusErr: errors.New("status boom")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Status(context.Background(), nil)
@@ -173,13 +173,18 @@ func TestStatus_SuccessAndFailure(t *testing.T) {
 
 func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 	original := initGatewayFunc
+	originalConfig := appConfig
 
-	defer func() { initGatewayFunc = original }()
+	defer func() {
+		initGatewayFunc = original
+		appConfig = originalConfig
+	}()
 
 	// Dry-run true
 	{
+		appConfig = &Config{DryRun: true}
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(true)
@@ -191,8 +196,9 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 
 	// Dry-run false with error
 	{
+		appConfig = &Config{DryRun: false}
 		mg := &mockGateway{rebootErr: errors.New("reboot boom")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(false)
@@ -205,8 +211,12 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 
 func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 	original := initGatewayFunc
+	originalConfig := appConfig
 
-	defer func() { initGatewayFunc = original }()
+	defer func() {
+		initGatewayFunc = original
+		appConfig = originalConfig
+	}()
 
 	t.Run("enter_accepts_default_no", func(t *testing.T) {
 		testRebootConfirmCancel(t, keys.Enter)
@@ -221,8 +231,9 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 	})
 
 	t.Run("auto_confirm_skips_prompt", func(t *testing.T) {
+		appConfig = &Config{DryRun: false}
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		cmd := &cli.Command{
@@ -238,15 +249,21 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 	})
 }
 
+//nolint:dupl
 func testRebootConfirmCancel(t *testing.T, key any) {
 	t.Helper()
 
 	original := initGatewayFunc
+	originalConfig := appConfig
 
-	defer func() { initGatewayFunc = original }()
+	defer func() {
+		initGatewayFunc = original
+		appConfig = originalConfig
+	}()
 
+	appConfig = &Config{DryRun: false}
 	mg := &mockGateway{}
-	initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+	initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 		return mg, nil
 	}
 	cmd := &cli.Command{
@@ -267,15 +284,21 @@ func testRebootConfirmCancel(t *testing.T, key any) {
 	assert.False(t, mg.rebootCalled, "reboot should be cancelled")
 }
 
+//nolint:dupl
 func testRebootConfirmProceed(t *testing.T, key any) {
 	t.Helper()
 
 	original := initGatewayFunc
+	originalConfig := appConfig
 
-	defer func() { initGatewayFunc = original }()
+	defer func() {
+		initGatewayFunc = original
+		appConfig = originalConfig
+	}()
 
+	appConfig = &Config{DryRun: false}
 	mg := &mockGateway{}
-	initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+	initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 		return mg, nil
 	}
 	cmd := &cli.Command{
@@ -304,7 +327,7 @@ func TestSignal_SuccessAndFailure(t *testing.T) {
 	// Success
 	{
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Signal(context.Background(), nil)
@@ -315,7 +338,7 @@ func TestSignal_SuccessAndFailure(t *testing.T) {
 	// Failure
 	{
 		mg := &mockGateway{signalErr: errors.New("signal boom")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		err := Signal(context.Background(), nil)

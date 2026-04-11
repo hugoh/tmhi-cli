@@ -60,16 +60,17 @@ func TestNewGatewayCommon(t *testing.T) {
 	assert.Empty(t, gc.Password)
 
 	// Test client configuration
-	version := "test-version"
-	ip := "192.168.1.1"
-	timeout := 5 * time.Second
-	retries := 3
-	gc.NewClient(version, ip, timeout, retries, true)
+	cfg := &GatewayConfig{
+		IP:      "192.168.1.1",
+		Timeout: 5 * time.Second,
+		Retries: 3,
+		Debug:   true,
+	}
+	gc.NewClient(cfg)
 
 	assert.Equal(t, "http://192.168.1.1", gc.Client.BaseURL)
-	assert.Equal(t, "tmhi-cli/test-version", gc.Client.Header.Get("User-Agent"))
-	assert.Equal(t, timeout, gc.Client.GetClient().Timeout)
-	assert.Equal(t, retries, gc.Client.RetryCount)
+	assert.Equal(t, cfg.Timeout, gc.Client.GetClient().Timeout)
+	assert.Equal(t, cfg.Retries, gc.Client.RetryCount)
 	assert.True(t, gc.Client.Debug)
 }
 

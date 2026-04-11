@@ -8,7 +8,6 @@ import (
 	"github.com/hugoh/tmhi-cli/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli/v3"
 )
 
 func TestLoginIntegration_FullFlow(t *testing.T) {
@@ -18,7 +17,7 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful login flow", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -29,7 +28,7 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 
 	t.Run("failed login returns error", func(t *testing.T) {
 		mg := &mockGateway{loginErr: errors.New("authentication failed")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -48,7 +47,7 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful info retrieval", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -59,7 +58,7 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 
 	t.Run("info failure returns error", func(t *testing.T) {
 		mg := &mockGateway{infoErr: errors.New("info unavailable")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -77,7 +76,7 @@ func TestStatusIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful status check", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -88,7 +87,7 @@ func TestStatusIntegration_FullFlow(t *testing.T) {
 
 	t.Run("status failure returns error", func(t *testing.T) {
 		mg := &mockGateway{statusErr: errors.New("status unavailable")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -106,7 +105,7 @@ func TestSignalIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful signal retrieval", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -117,7 +116,7 @@ func TestSignalIntegration_FullFlow(t *testing.T) {
 
 	t.Run("signal failure returns error", func(t *testing.T) {
 		mg := &mockGateway{signalErr: errors.New("signal unavailable")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 
@@ -129,12 +128,17 @@ func TestSignalIntegration_FullFlow(t *testing.T) {
 
 func TestRebootIntegration_FullFlow(t *testing.T) {
 	original := initGatewayFunc
+	originalConfig := appConfig
 
-	defer func() { initGatewayFunc = original }()
+	defer func() {
+		initGatewayFunc = original
+		appConfig = originalConfig
+	}()
 
 	t.Run("successful reboot with auto-confirm", func(t *testing.T) {
+		appConfig = &Config{DryRun: false}
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(false)
@@ -146,8 +150,9 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 	})
 
 	t.Run("successful reboot with dry-run", func(t *testing.T) {
+		appConfig = &Config{DryRun: true}
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(true)
@@ -159,8 +164,9 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 	})
 
 	t.Run("reboot failure returns error", func(t *testing.T) {
+		appConfig = &Config{DryRun: false}
 		mg := &mockGateway{rebootErr: errors.New("reboot failed")}
-		initGatewayFunc = func(_ *cli.Command) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(false)

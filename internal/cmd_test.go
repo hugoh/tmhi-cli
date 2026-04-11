@@ -67,7 +67,8 @@ func TestCmd_Version(t *testing.T) {
 
 	assert.Contains(
 		t,
-		out, testVersion,
+		out,
+		testVersion,
 		"expected version output to contain %q, got: %q",
 		testVersion,
 		out,
