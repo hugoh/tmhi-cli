@@ -57,6 +57,6 @@ When making changes to this codebase:
 
 ## Notes
 
-- Test coverage threshold is 80% (configured in `.testcoverage.yml`)
+- Test coverage threshold is configured in `.testcoverage.yml`.
 - Prettier is used for non-Go files (Markdown, YAML, etc.)
 - Always use `mise` tasks rather than calling tools directly

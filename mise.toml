@@ -8,7 +8,6 @@ prettier = "3.8.1"
 
 [env]
 COVEROUT = "cover.out"
-TEST_COVERAGE = "80"
 
 [tasks.lint]
 description = "Lint code"
