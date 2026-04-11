@@ -2,19 +2,21 @@ package internal
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	toml "github.com/urfave/cli-altsrc/v3/toml"
+	clival "github.com/urfave/cli-validation"
 	"github.com/urfave/cli/v3"
 	"golang.org/x/term"
 )
 
-// ErrInvalidColorValue indicates an invalid value was provided for the --color flag.
-var ErrInvalidColorValue = errors.New("invalid value for --color: must be always, never, or auto")
+// Global config instance for flag destinations.
+//
+//nolint:gochecknoglobals
+var appConfig = &Config{}
 
 // Configuration flag names.
 const (
@@ -102,10 +104,11 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			TakesFile:   true,
 		},
 		&cli.BoolFlag{
-			Name:    ConfigDebug,
-			Aliases: []string{"d"},
-			Value:   false,
-			Usage:   "display debugging output in the console",
+			Name:        ConfigDebug,
+			Aliases:     []string{"d"},
+			Value:       false,
+			Usage:       "display debugging output in the console",
+			Destination: &appConfig.Debug,
 			Action: func(_ context.Context, _ *cli.Command, v bool) error {
 				if v {
 					pterm.EnableDebugMessages()
@@ -115,21 +118,20 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			},
 		},
 		&cli.StringFlag{
-			Name:  ConfigColor,
-			Value: "auto",
-			Usage: "colorize output: always, never, auto",
+			Name:      ConfigColor,
+			Value:     "auto",
+			Usage:     "colorize output: always, never, auto",
+			Validator: clival.Enum("always", "never", "auto"),
 			Action: func(_ context.Context, _ *cli.Command, value string) error {
 				switch value {
-				case "never":
-					pterm.DisableStyling()
 				case "always":
 					// pterm default
 				case "auto":
 					if !termIsTerminal() {
 						pterm.DisableStyling()
 					}
-				default:
-					return fmt.Errorf("%w: %q", ErrInvalidColorValue, value)
+				case "never":
+					pterm.DisableStyling()
 				}
 
 				return nil
@@ -149,46 +151,53 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			},
 		},
 		&cli.BoolFlag{
-			Name:    ConfigDryRun,
-			Aliases: []string{"D"},
-			Value:   false,
-			Usage:   "do not perform any change to the gateway",
+			Name:        ConfigDryRun,
+			Aliases:     []string{"D"},
+			Value:       false,
+			Usage:       "do not perform any change to the gateway",
+			Destination: &appConfig.DryRun,
 		},
 		&cli.StringFlag{
-			Name:     ConfigModel,
-			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigModel, configSource)),
-			Required: true,
-			Usage:    fmt.Sprintf("gateway model: options: %s, %s", ARCADYAN, NOK5G21),
+			Name:        ConfigModel,
+			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigModel, configSource)),
+			Required:    true,
+			Usage:       fmt.Sprintf("gateway model: options: %s, %s", ARCADYAN, NOK5G21),
+			Destination: &appConfig.Model,
 		},
 		&cli.StringFlag{
-			Name:    ConfigIP,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigIP, configSource)),
-			Value:   "192.168.12.1",
-			Usage:   "gateway IP",
+			Name:        ConfigIP,
+			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigIP, configSource)),
+			Value:       "192.168.12.1",
+			Usage:       "gateway IP",
+			Destination: &appConfig.IP,
 		},
 		&cli.StringFlag{
-			Name:    ConfigUsername,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigUsername, configSource)),
-			Value:   "admin",
-			Usage:   "admin username",
+			Name:        ConfigUsername,
+			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigUsername, configSource)),
+			Value:       "admin",
+			Usage:       "admin username",
+			Destination: &appConfig.Username,
 		},
 		&cli.StringFlag{
-			Name:     ConfigPassword,
-			Sources:  cli.NewValueSourceChain(toml.TOML(ConfigPassword, configSource)),
-			Required: false,
-			Usage:    "admin password",
+			Name:        ConfigPassword,
+			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigPassword, configSource)),
+			Required:    false,
+			Usage:       "admin password",
+			Destination: &appConfig.Password,
 		},
 		&cli.IntFlag{
-			Name:    ConfigRetries,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
-			Value:   0,
-			Usage:   "number of retries",
+			Name:        ConfigRetries,
+			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
+			Value:       0,
+			Usage:       "number of retries",
+			Destination: &appConfig.Retries,
 		},
 		&cli.DurationFlag{
-			Name:    ConfigTimeout,
-			Sources: cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
-			Value:   DefaultTimeout,
-			Usage:   "request timeout in seconds",
+			Name:        ConfigTimeout,
+			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigTimeout, configSource)),
+			Value:       DefaultTimeout,
+			Usage:       "request timeout in seconds",
+			Destination: &appConfig.Timeout,
 		},
 	}
 }

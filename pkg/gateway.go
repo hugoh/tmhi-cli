@@ -3,7 +3,6 @@ package pkg
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/pterm/pterm"
@@ -11,7 +10,7 @@ import (
 
 // Gateway defines the interface for T-Mobile gateway implementations.
 type Gateway interface {
-	NewClient(version, gatewayIP string, timeout time.Duration, retries int, debug bool)
+	NewClient(cfg *GatewayConfig)
 	AddCredentials(username, password string)
 	Login() error
 	Reboot(dryRun bool) error
@@ -49,24 +48,18 @@ func NewGatewayCommon() *GatewayCommon {
 }
 
 // NewClient configures the HTTP client for the gateway.
-func (gc *GatewayCommon) NewClient(
-	version, gatewayIP string,
-	timeout time.Duration,
-	retries int,
-	debug bool,
-) {
+func (gc *GatewayCommon) NewClient(cfg *GatewayConfig) {
 	if gc.Client == nil {
 		gc.Client = resty.New()
 	}
 
 	gc.Client.
-		SetBaseURL("http://"+gatewayIP).
-		SetHeader("User-Agent", "tmhi-cli/"+version).
-		SetDebug(debug).
-		SetTimeout(timeout)
+		SetBaseURL("http://" + cfg.IP).
+		SetDebug(cfg.Debug).
+		SetTimeout(cfg.Timeout)
 
-	if retries > 0 {
-		gc.Client.SetRetryCount(retries)
+	if cfg.Retries > 0 {
+		gc.Client.SetRetryCount(cfg.Retries)
 	}
 }
 
