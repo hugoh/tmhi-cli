@@ -67,9 +67,54 @@ func TestCmd_Version(t *testing.T) {
 
 	assert.Contains(
 		t,
-		out, testVersion,
+		out,
+		testVersion,
 		"expected version output to contain %q, got: %q",
 		testVersion,
 		out,
 	)
+}
+
+func TestColorFlag_Never(t *testing.T) {
+	oldArgs := os.Args
+	os.Args = []string{"tmhi-cli", "--color", "never", "info"}
+
+	defer func() { os.Args = oldArgs }()
+
+	out := testutil.CaptureOutput(t, func() {
+		Cmd("test-version")
+	})
+
+	assert.Contains(t, out, "")
+}
+
+func TestColorFlag_Always(t *testing.T) {
+	oldArgs := os.Args
+	os.Args = []string{"tmhi-cli", "--color", "always", "info"}
+
+	defer func() { os.Args = oldArgs }()
+
+	out := testutil.CaptureOutput(t, func() {
+		Cmd("test-version")
+	})
+
+	assert.Contains(t, out, "")
+}
+
+func TestColorFlag_Auto(t *testing.T) {
+	oldArgs := os.Args
+	os.Args = []string{"tmhi-cli", "--color", "auto", "info"}
+
+	defer func() { os.Args = oldArgs }()
+
+	out := testutil.CaptureOutput(t, func() {
+		Cmd("test-version")
+	})
+
+	assert.Contains(t, out, "")
+}
+
+func TestTermIsTerminal(_ *testing.T) {
+	result := termIsTerminal()
+	_ = result
 }

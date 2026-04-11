@@ -25,9 +25,8 @@ COMMANDS:
 GLOBAL OPTIONS:
    --config string, -c string  use the specified TOML configuration file (default: "/Users/hugoh/.tmhi-cli.toml")
    --debug, -d                 display debugging output in the console
-   --no-color                  disable colored output
+   --color string              colorize output: always, never, auto (default: "auto")
    --quiet, -q                 quiet mode, suppresses output
-   --yes, -y                   skip confirmation prompts
    --dry-run, -D               do not perform any change to the gateway
    --gateway.model string      gateway model: options: ARCADYAN, NOK5G21
    --gateway.ip string         gateway IP (default: "192.168.12.1")
@@ -37,7 +36,6 @@ GLOBAL OPTIONS:
    --timeout duration          request timeout in seconds (default: 5s)
    --help, -h                  show help
    --version, -v               print the version
-```
 
 ## See also
 
@@ -45,3 +43,4 @@ GLOBAL OPTIONS:
 - [cloud-unpacked/tmhi: TMHI is a CLI to manage your local T-Mobile Home Internet 5G Gateway/Router.](https://github.com/cloud-unpacked/tmhi)
 - [highvolt-dev/tmo-monitor: A lightweight, cross-platform Python 3 script that can monitor the T-Mobile Home Internet Nokia, Arcadyan, and Sagecom 5G Gateways for 4G/5G bands, cellular site (tower), and internet connectivity and reboots as needed or on-demand.](https://github.com/highvolt-dev/tmo-monitor)
 - [highvolt-dev/tmo-live-graph: A simpe react app that plots a live view of the T-Mobile Home Internet Nokia 5G Gateway signal stats, helpful for optimizing signal.](https://github.com/highvolt-dev/tmo-live-graph)
+```

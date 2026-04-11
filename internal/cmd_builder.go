@@ -2,17 +2,24 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	toml "github.com/urfave/cli-altsrc/v3/toml"
 	"github.com/urfave/cli/v3"
+	"golang.org/x/term"
 )
+
+// ErrInvalidColorValue indicates an invalid value was provided for the --color flag.
+var ErrInvalidColorValue = errors.New("invalid value for --color: must be always, never, or auto")
 
 // Configuration flag names.
 const (
 	ConfigAutoConfirm string = "yes"
+	ConfigColor       string = "color"
 	ConfigConfig      string = "config"
 	ConfigDebug       string = "debug"
 	ConfigDryRun      string = "dry-run"
@@ -20,13 +27,17 @@ const (
 	ConfigIP          string = ConfigGateway + "ip"
 	ConfigLogin       string = "login."
 	ConfigModel       string = ConfigGateway + "model"
-	ConfigNoColor     string = "no-color"
 	ConfigPassword    string = ConfigLogin + "password"
 	ConfigQuiet       string = "quiet"
 	ConfigRetries     string = "retries"
 	ConfigTimeout     string = "timeout"
 	ConfigUsername    string = ConfigLogin + "username"
 )
+
+func termIsTerminal() bool {
+	//nolint:gosec // Fd() returns a valid int on all platforms
+	return term.IsTerminal(int(os.Stdout.Fd()))
+}
 
 func cmdCommands() []*cli.Command {
 	return []*cli.Command{
@@ -103,13 +114,22 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 				return nil
 			},
 		},
-		&cli.BoolFlag{
-			Name:  ConfigNoColor,
-			Value: false,
-			Usage: "disable colored output",
-			Action: func(_ context.Context, _ *cli.Command, v bool) error {
-				if v {
+		&cli.StringFlag{
+			Name:  ConfigColor,
+			Value: "auto",
+			Usage: "colorize output: always, never, auto",
+			Action: func(_ context.Context, _ *cli.Command, value string) error {
+				switch value {
+				case "never":
 					pterm.DisableStyling()
+				case "always":
+					// pterm default
+				case "auto":
+					if !termIsTerminal() {
+						pterm.DisableStyling()
+					}
+				default:
+					return fmt.Errorf("%w: %q", ErrInvalidColorValue, value)
 				}
 
 				return nil
