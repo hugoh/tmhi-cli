@@ -11,6 +11,7 @@ import (
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	"github.com/urfave/cli/v3"
+	"golang.org/x/term"
 )
 
 // Gateway model constants.
@@ -164,6 +165,24 @@ func defaultConfigPath() string {
 	return home + "/.tmhi-cli.toml"
 }
 
+// setupColor handles the --color flag logic before command execution.
+func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	colorValue := cmd.String(ConfigColor)
+	switch colorValue {
+	case "always":
+		// pterm default - colors enabled
+	case "auto":
+		//nolint:gosec // Fd() returns a valid int on all platforms
+		if !term.IsTerminal(int(os.Stdout.Fd())) {
+			pterm.DisableStyling()
+		}
+	case "never":
+		pterm.DisableStyling()
+	}
+
+	return ctx, nil
+}
+
 // Cmd is the main entry point for the CLI application.
 func Cmd(version string) {
 	var configFile string
@@ -176,6 +195,7 @@ func Cmd(version string) {
 		Version:  version,
 		Flags:    cmdFlags(&configFile, configSource),
 		Commands: cmdCommands(),
+		Before:   setupColor,
 		OnUsageError: func(_ context.Context, cmd *cli.Command, err error, _ bool) error {
 			_, _ = fmt.Fprintf(cmd.ErrWriter, "error: %v\n", err)
 
