@@ -13,6 +13,7 @@ linters:
       - path: _test\.go$
         linters:
           - err113
+          - funlen
           - varnamelen
 formatters:
   enable:
