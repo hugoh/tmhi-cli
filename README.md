@@ -36,6 +36,7 @@ GLOBAL OPTIONS:
    --timeout duration          request timeout in seconds (default: 5s)
    --help, -h                  show help
    --version, -v               print the version
+```
 
 ## See also
 
