@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hugoh/tmhi-cli/pkg"
+	tmhi "github.com/hugoh/tmhi-gateway"
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	"github.com/urfave/cli/v3"
@@ -24,8 +24,28 @@ const (
 //nolint:gochecknoglobals
 var initGatewayFunc = initGateway
 
+// withSpinner runs an operation with a spinner, handling success/failure.
+// It starts a spinner with the given message, executes the function,
+// and properly stops the spinner on success or failure.
+//
 //nolint:ireturn
-func initGateway(_ *Config) (pkg.Gateway, error) {
+func withSpinner[T any](message string, fn func() (T, error)) (T, error) {
+	spinner, _ := pterm.DefaultSpinner.Start(message)
+
+	result, err := fn()
+	if err != nil {
+		spinner.Fail(fmt.Sprintf("%s: %v", message, err))
+
+		return result, fmt.Errorf("%s: %w", message, err)
+	}
+
+	_ = spinner.WithRemoveWhenDone().Stop()
+
+	return result, nil
+}
+
+//nolint:ireturn
+func initGateway(_ *Config) (tmhi.Gateway, error) {
 	gateway, err := getGateway(appConfig)
 	if err != nil {
 		pterm.Error.Println("could not instantiate gateway:", err)
@@ -36,27 +56,25 @@ func initGateway(_ *Config) (pkg.Gateway, error) {
 	return gateway, nil
 }
 
-// Login handles the login CLI command.
-func Login(_ context.Context, _ *cli.Command) error {
+func login(_ context.Context, _ *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
-	err = gateway.Login()
+	result, err := withSpinner("Checking logging in...", func() (*tmhi.LoginResult, error) {
+		return gateway.Login()
+	})
 	if err != nil {
-		pterm.Error.Println("could not log in:", err)
-
-		return cli.Exit("login failed", 1)
+		return err
 	}
 
-	pterm.Success.Println("successfully logged in")
+	displayLoginResult(result)
 
 	return nil
 }
 
-// Req handles the req CLI command for custom HTTP requests.
-func Req(_ context.Context, cmd *cli.Command) error {
+func req(_ context.Context, cmd *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
@@ -72,64 +90,77 @@ func Req(_ context.Context, cmd *cli.Command) error {
 	loginFirst := cmd.Bool("login")
 
 	if loginFirst {
-		if err := gateway.Login(); err != nil {
+		if _, err := gateway.Login(); err != nil {
 			return fmt.Errorf("request failed: %w", err)
 		}
 	}
 
-	if err := gateway.Request(method, path); err != nil {
+	result, err := gateway.Request(method, path)
+	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
 
+	displayInfoResult(result)
+
 	return nil
 }
 
-// Info handles the info CLI command.
-func Info(_ context.Context, _ *cli.Command) error {
+func info(_ context.Context, _ *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
-	if err := gateway.Info(); err != nil {
+	result, err := gateway.Info()
+	if err != nil {
 		return fmt.Errorf("info command failed: %w", err)
 	}
 
+	displayInfoResult(result)
+
 	return nil
 }
 
-// Status handles the status CLI command.
-func Status(_ context.Context, _ *cli.Command) error {
+func status(_ context.Context, _ *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
-	if err := gateway.Status(); err != nil {
-		pterm.Error.Println("status check failed:", err)
-
-		return fmt.Errorf("status check failed: %w", err)
+	result, err := withSpinner("Checking gateway status...", func() (*tmhi.StatusResult, error) {
+		return gateway.Status()
+	})
+	if err != nil {
+		return err
 	}
+
+	displayStatusResult(result)
 
 	return nil
 }
 
-// Signal handles the signal CLI command.
-func Signal(_ context.Context, _ *cli.Command) error {
+func signalCmd(_ context.Context, _ *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
-	if err := gateway.Signal(); err != nil {
-		return fmt.Errorf("signal command failed: %w", err)
+	result, err := withSpinner(
+		"Fetching signal information...",
+		func() (*tmhi.SignalResult, error) {
+			return gateway.Signal()
+		},
+	)
+	if err != nil {
+		return err
 	}
+
+	displaySignalResult(result)
 
 	return nil
 }
 
-// Reboot handles the reboot CLI command.
-func Reboot(_ context.Context, cmd *cli.Command) error {
+func reboot(_ context.Context, cmd *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
@@ -146,12 +177,22 @@ func Reboot(_ context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	err = gateway.Reboot(appConfig.DryRun)
+	if appConfig.DryRun {
+		pterm.Info.Println("Dry run - would send reboot request")
+
+		return nil
+	}
+
+	spinner, _ := pterm.DefaultSpinner.Start("Rebooting gateway...")
+
+	err = gateway.Reboot()
 	if err != nil {
-		pterm.Error.Println("could not reboot gateway:", err)
+		spinner.Fail("Reboot failed")
 
 		return fmt.Errorf("could not reboot gateway: %w", err)
 	}
+
+	spinner.Success("Reboot command sent successfully")
 
 	return nil
 }
@@ -165,12 +206,10 @@ func defaultConfigPath() string {
 	return home + "/.tmhi-cli.toml"
 }
 
-// setupColor handles the --color flag logic before command execution.
 func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	colorValue := cmd.String(ConfigColor)
 	switch colorValue {
 	case "always":
-		// pterm default - colors enabled
 	case "auto":
 		//nolint:gosec // Fd() returns a valid int on all platforms
 		if !term.IsTerminal(int(os.Stdout.Fd())) {
@@ -183,7 +222,7 @@ func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 	return ctx, nil
 }
 
-// Cmd is the main entry point for the CLI application.
+// Cmd runs the CLI application with the given version string.
 func Cmd(version string) {
 	var configFile string
 

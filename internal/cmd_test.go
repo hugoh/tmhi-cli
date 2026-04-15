@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"testing"
 
@@ -11,6 +13,67 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 )
+
+func TestWithSpinner_Success(t *testing.T) {
+	pterm.DisableStyling()
+
+	defer pterm.EnableStyling()
+
+	result, err := withSpinner("Test operation", func() (string, error) {
+		return "success", nil
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "success", result)
+}
+
+func TestWithSpinner_Error(t *testing.T) {
+	pterm.DisableStyling()
+
+	defer pterm.EnableStyling()
+
+	expectedErr := errors.New("operation failed")
+	result, err := withSpinner("Test operation", func() (string, error) {
+		return "partial", expectedErr
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Test operation")
+	assert.Contains(t, err.Error(), "operation failed")
+	assert.Equal(t, "partial", result)
+}
+
+func TestWithSpinner_WithPointerType(t *testing.T) {
+	pterm.DisableStyling()
+
+	defer pterm.EnableStyling()
+
+	type testResult struct {
+		Value int
+	}
+
+	result, err := withSpinner("Test operation", func() (*testResult, error) {
+		return &testResult{Value: 42}, nil
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, 42, result.Value)
+}
+
+func TestWithSpinner_ErrorWrapping(t *testing.T) {
+	pterm.DisableStyling()
+
+	defer pterm.EnableStyling()
+
+	originalErr := errors.New("underlying error")
+	_, err := withSpinner("Doing something", func() (int, error) {
+		return 0, originalErr
+	})
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, originalErr, "error should wrap the original error")
+}
 
 func TestDefaultConfigPath(t *testing.T) {
 	path := defaultConfigPath()
@@ -146,4 +209,70 @@ func TestSetupColor_AutoDefault(t *testing.T) {
 		pterm.RawOutput,
 		"pterm.RawOutput should be true in non-terminal environment with --color=auto",
 	)
+}
+
+func TestOnUsageError(t *testing.T) {
+	app := &cli.Command{
+		Name: "tmhi-cli",
+		OnUsageError: func(_ context.Context, cmd *cli.Command, err error, _ bool) error {
+			_, _ = fmt.Fprintf(cmd.ErrWriter, "error: %v\n", err)
+
+			return err
+		},
+	}
+
+	err := app.Run(context.Background(), []string{"tmhi-cli", "--invalid-flag"})
+	require.Error(t, err)
+}
+
+func TestDebugFlagAction(t *testing.T) {
+	pterm.DisableDebugMessages()
+	defer pterm.DisableDebugMessages()
+
+	var configFile string
+
+	flags := cmdFlags(&configFile, nil)
+
+	var debugFlag *cli.BoolFlag
+
+	for _, f := range flags {
+		if bf, ok := f.(*cli.BoolFlag); ok && bf.Name == ConfigDebug {
+			debugFlag = bf
+
+			break
+		}
+	}
+
+	require.NotNil(t, debugFlag)
+	require.NotNil(t, debugFlag.Action)
+
+	cmd := &cli.Command{Flags: flags}
+	err := debugFlag.Action(context.Background(), cmd, true)
+	require.NoError(t, err)
+}
+
+func TestQuietFlagAction(t *testing.T) {
+	pterm.EnableOutput()
+	defer pterm.EnableOutput()
+
+	var configFile string
+
+	flags := cmdFlags(&configFile, nil)
+
+	var quietFlag *cli.BoolFlag
+
+	for _, f := range flags {
+		if bf, ok := f.(*cli.BoolFlag); ok && bf.Name == ConfigQuiet {
+			quietFlag = bf
+
+			break
+		}
+	}
+
+	require.NotNil(t, quietFlag)
+	require.NotNil(t, quietFlag.Action)
+
+	cmd := &cli.Command{Flags: flags}
+	err := quietFlag.Action(context.Background(), cmd, true)
+	require.NoError(t, err)
 }

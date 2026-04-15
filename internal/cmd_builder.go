@@ -39,7 +39,7 @@ func cmdCommands() []*cli.Command {
 		{
 			Name:   "login",
 			Usage:  "Verify that the credentials can log the tool in",
-			Action: Login,
+			Action: login,
 		},
 		{
 			Name:  "reboot",
@@ -52,22 +52,22 @@ func cmdCommands() []*cli.Command {
 					Usage:   "skip confirmation prompts",
 				},
 			},
-			Action: Reboot,
+			Action: reboot,
 		},
 		{
 			Name:   "info",
 			Usage:  "Get gateway information",
-			Action: Info,
+			Action: info,
 		},
 		{
 			Name:   "status",
 			Usage:  "Check gateway status",
-			Action: Status,
+			Action: status,
 		},
 		{
 			Name:   "signal",
 			Usage:  "Display signal strength information",
-			Action: Signal,
+			Action: signalCmd,
 		},
 		{
 			Name:      "req",
@@ -81,7 +81,7 @@ func cmdCommands() []*cli.Command {
 					Usage:   "login before making request",
 				},
 			},
-			Action: Req,
+			Action: req,
 		},
 	}
 }

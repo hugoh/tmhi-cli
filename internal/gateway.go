@@ -4,36 +4,34 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hugoh/tmhi-cli/pkg"
+	tmhi "github.com/hugoh/tmhi-gateway"
 	"github.com/pterm/pterm"
 )
 
-// ErrUnknownGateway is returned when an unsupported gateway model is specified.
-var ErrUnknownGateway = errors.New("unknown gateway")
+var errUnknownGateway = errors.New("unknown gateway")
 
-// getGateway returns a gateway instance based on the model type.
-//
 //nolint:ireturn
-func getGateway(cfg *Config) (pkg.Gateway, error) {
-	var gateway pkg.Gateway
+func getGateway(cfg *Config) (tmhi.Gateway, error) {
+	var gateway tmhi.Gateway
 
 	switch cfg.Model {
-	case "ARCADYAN":
-		gateway = pkg.NewArcadyanGateway()
-	case "NOK5G21":
-		gateway = pkg.NewNokiaGateway()
+	case ARCADYAN:
+		gateway = tmhi.NewArcadyanGateway()
+	case NOK5G21:
+		gateway = tmhi.NewNokiaGateway()
 	default:
 		pterm.Error.Println("unsupported gateway:", cfg.Model)
 
-		return nil, fmt.Errorf("%w: %s", ErrUnknownGateway, cfg.Model)
+		return nil, fmt.Errorf("%w: %s", errUnknownGateway, cfg.Model)
 	}
 
-	gateway.NewClient(&pkg.GatewayConfig{
+	gateway.NewClient(&tmhi.GatewayConfig{
 		IP:       cfg.IP,
 		Username: cfg.Username,
 		Password: cfg.Password,
 		Timeout:  cfg.Timeout,
 		Retries:  cfg.Retries,
+		DryRun:   cfg.DryRun,
 		Debug:    cfg.Debug,
 	})
 	gateway.AddCredentials(cfg.Username, cfg.Password)
