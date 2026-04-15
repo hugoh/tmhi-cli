@@ -45,8 +45,10 @@ github.com/gookit/color v1.4.2/go.mod h1:fqRyamkC1W8uxl+lxCQxOT09l/vYfZ+QeiX3rKQ
 github.com/gookit/color v1.5.0/go.mod h1:43aQb+Zerm/BWh2GnrgOQm7ffz7tvQXEKV6BFMl7wAo=
 github.com/gookit/color v1.6.0 h1:JjJXBTk1ETNyqyilJhkTXJYYigHG24TM9Xa2M1xAhRA=
 github.com/gookit/color v1.6.0/go.mod h1:9ACFc7/1IpHGBW8RwuDm/0YEnhg3dwwXpoMsmtyHfjs=
-github.com/hugoh/cellular-signal v1.1.1 h1:L5KwvIEiucGfOhhBsSrxwG2DHma64yyvUmdSyaldEOc=
-github.com/hugoh/cellular-signal v1.1.1/go.mod h1:vbG0YBciID3aJC98Ue3OgqOGVKfhHDBWIF8ynvgp2qE=
+github.com/hugoh/cellular-signal v1.1.2 h1:olGnf0ZyDf0dUMr8BI4wjFVClOvRzP6uc9JHilHiJHc=
+github.com/hugoh/cellular-signal v1.1.2/go.mod h1:UX0FKsxcPzK7YFM6Glu7LjZQA8m8TxXcRV64/N1rgZk=
+github.com/hugoh/tmhi-gateway v1.0.2 h1:Cy01x4HJr8mlnICe5VToTi8XzwD4rJeAJ5Kxj6eWe20=
+github.com/hugoh/tmhi-gateway v1.0.2/go.mod h1:QuYWc8UMULHcn6ZOe5zYiykdPs0uQKDHbao6fWOMzbo=
 github.com/klauspost/cpuid/v2 v2.0.9/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/klauspost/cpuid/v2 v2.0.10/go.mod h1:g2LTdtYhdyuGPqyWyv7qRAmj1WBqxuObKfj5c0PQa7c=
 github.com/klauspost/cpuid/v2 v2.0.12/go.mod h1:g2LTdtYhdyuGPqyWyv7qRAmj1WBqxuObKfj5c0PQa7c=

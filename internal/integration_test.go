@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hugoh/tmhi-cli/pkg"
+	tmhi "github.com/hugoh/tmhi-gateway"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,24 +17,24 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful login flow", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Login(context.Background(), nil)
+		err := login(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.loginCalled, "login should be called")
 	})
 
 	t.Run("failed login returns error", func(t *testing.T) {
 		mg := &mockGateway{loginErr: errors.New("authentication failed")}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Login(context.Background(), nil)
+		err := login(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "login failed")
+		assert.Contains(t, err.Error(), "Checking logging in...")
 		assert.True(t, mg.loginCalled, "login should still be attempted")
 	})
 }
@@ -47,22 +47,22 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful info retrieval", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Info(context.Background(), nil)
+		err := info(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.infoCalled, "info should be called")
 	})
 
 	t.Run("info failure returns error", func(t *testing.T) {
 		mg := &mockGateway{infoErr: errors.New("info unavailable")}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Info(context.Background(), nil)
+		err := info(context.Background(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "info command failed")
 	})
@@ -76,24 +76,24 @@ func TestStatusIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful status check", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Status(context.Background(), nil)
+		err := status(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.statusCalled, "status should be called")
 	})
 
 	t.Run("status failure returns error", func(t *testing.T) {
 		mg := &mockGateway{statusErr: errors.New("status unavailable")}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Status(context.Background(), nil)
+		err := status(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "status check failed")
+		assert.Contains(t, err.Error(), "Checking gateway status...")
 	})
 }
 
@@ -105,24 +105,24 @@ func TestSignalIntegration_FullFlow(t *testing.T) {
 
 	t.Run("successful signal retrieval", func(t *testing.T) {
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Signal(context.Background(), nil)
+		err := signalCmd(context.Background(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.signalCalled, "signal should be called")
 	})
 
 	t.Run("signal failure returns error", func(t *testing.T) {
 		mg := &mockGateway{signalErr: errors.New("signal unavailable")}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 
-		err := Signal(context.Background(), nil)
+		err := signalCmd(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "signal command failed")
+		assert.Contains(t, err.Error(), "Fetching signal information...")
 	})
 }
 
@@ -138,40 +138,38 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 	t.Run("successful reboot with auto-confirm", func(t *testing.T) {
 		appConfig = &Config{DryRun: false}
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(false)
 
-		err := Reboot(context.Background(), cmd)
+		err := reboot(context.Background(), cmd)
 		require.NoError(t, err)
 		assert.True(t, mg.rebootCalled, "reboot should be called")
-		assert.False(t, mg.rebootDryRun, "dry-run should be false")
 	})
 
-	t.Run("successful reboot with dry-run", func(t *testing.T) {
+	t.Run("successful reboot with dry-run returns early", func(t *testing.T) {
 		appConfig = &Config{DryRun: true}
 		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(true)
 
-		err := Reboot(context.Background(), cmd)
+		err := reboot(context.Background(), cmd)
 		require.NoError(t, err)
-		assert.True(t, mg.rebootCalled, "reboot should be called")
-		assert.True(t, mg.rebootDryRun, "dry-run should be true")
+		assert.False(t, mg.rebootCalled, "reboot should not be called in dry-run mode")
 	})
 
 	t.Run("reboot failure returns error", func(t *testing.T) {
 		appConfig = &Config{DryRun: false}
 		mg := &mockGateway{rebootErr: errors.New("reboot failed")}
-		initGatewayFunc = func(_ *Config) (pkg.Gateway, error) {
+		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
 		cmd := newRebootCmd(false)
 
-		err := Reboot(context.Background(), cmd)
+		err := reboot(context.Background(), cmd)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "could not reboot gateway")
 	})

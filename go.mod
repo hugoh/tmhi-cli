@@ -5,8 +5,8 @@ go 1.25.0
 require (
 	atomicgo.dev/keyboard v0.2.9
 	github.com/go-playground/validator/v10 v10.30.2
-	github.com/go-resty/resty/v2 v2.17.2
-	github.com/hugoh/cellular-signal v1.1.1
+	github.com/hugoh/cellular-signal v1.1.2
+	github.com/hugoh/tmhi-gateway v1.0.2
 	github.com/pterm/pterm v0.12.83
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli-altsrc/v3 v3.1.0
@@ -25,6 +25,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-resty/resty/v2 v2.17.2 // indirect
 	github.com/gookit/color v1.6.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
