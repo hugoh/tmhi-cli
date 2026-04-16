@@ -28,9 +28,6 @@ type mockGateway struct {
 	signalErr     error
 }
 
-func (m *mockGateway) NewClient(_ *tmhi.GatewayConfig) {}
-func (m *mockGateway) AddCredentials(_, _ string)      {}
-
 func (m *mockGateway) Login() (*tmhi.LoginResult, error) {
 	m.loginCalled = true
 	if m.loginErr != nil {
