@@ -6,7 +6,7 @@ require (
 	atomicgo.dev/keyboard v0.2.9
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/hugoh/cellular-signal v1.1.2
-	github.com/hugoh/tmhi-gateway v1.0.2
+	github.com/hugoh/tmhi-gateway v1.1.0
 	github.com/pterm/pterm v0.12.83
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli-altsrc/v3 v3.1.0
