@@ -14,6 +14,60 @@ import (
 	"golang.org/x/term"
 )
 
+type spinner interface {
+	Fail(message ...any)
+	Success(message ...any)
+	Stop() error
+}
+
+// spinnerFunc creates a new spinner. Overrideable for testing.
+//
+//nolint:gochecknoglobals
+var spinnerFunc = func(message string) (spinner, error) {
+	sp, err := pterm.DefaultSpinner.Start(message)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start spinner: %w", err)
+	}
+
+	return &spinnerWrapper{spinnerPrinter: sp}, nil
+}
+
+// spinnerWrapper wraps pterm.SpinnerPrinter to implement the spinner interface.
+type spinnerWrapper struct {
+	spinnerPrinter *pterm.SpinnerPrinter
+}
+
+func (w *spinnerWrapper) Fail(message ...any) {
+	w.spinnerPrinter.Fail(message...)
+}
+
+func (w *spinnerWrapper) Success(message ...any) {
+	if message != nil {
+		w.spinnerPrinter.Success(message...)
+
+		return
+	}
+
+	_ = w.spinnerPrinter.WithRemoveWhenDone().Stop()
+}
+
+func (w *spinnerWrapper) Stop() error {
+	if err := w.spinnerPrinter.Stop(); err != nil {
+		return fmt.Errorf("failed to stop spinner: %w", err)
+	}
+
+	return nil
+}
+
+// confirmDialog prompts the user for confirmation. Overrideable for testing.
+//
+//nolint:gochecknoglobals
+var confirmDialog = func(msg string, defaultVal bool) (bool, error) {
+	return pterm.DefaultInteractiveConfirm.
+		WithDefaultValue(defaultVal).
+		Show(msg)
+}
+
 // Gateway model constants.
 const (
 	ARCADYAN       string        = "ARCADYAN"
@@ -29,17 +83,24 @@ var initGatewayFunc = initGateway
 // and properly stops the spinner on success or failure.
 //
 //nolint:ireturn
-func withSpinner[T any](message string, fn func() (T, error)) (T, error) {
-	spinner, _ := pterm.DefaultSpinner.Start(message)
-
-	result, err := fn()
+func withSpinner[T any](
+	message string,
+	operation func() (T, error),
+	successMessage ...any,
+) (T, error) {
+	spinnerInstance, err := spinnerFunc(message)
 	if err != nil {
-		spinner.Fail(fmt.Sprintf("%s: %v", message, err))
-
-		return result, fmt.Errorf("%s: %w", message, err)
+		return *new(T), err
 	}
 
-	_ = spinner.WithRemoveWhenDone().Stop()
+	result, opErr := operation()
+	if opErr != nil {
+		spinnerInstance.Fail(fmt.Sprintf("%s: %v", message, opErr))
+
+		return result, fmt.Errorf("%s: %w", message, opErr)
+	}
+
+	spinnerInstance.Success(successMessage...)
 
 	return result, nil
 }
@@ -167,10 +228,15 @@ func reboot(_ context.Context, cmd *cli.Command) error {
 	}
 
 	if !cmd.Bool(ConfigAutoConfirm) {
-		confirm, _ := pterm.DefaultInteractiveConfirm.
-			WithDefaultValue(false).
-			Show("Are you sure you want to reboot the gateway?")
-		if !confirm {
+		confirmed, confirmErr := confirmDialog(
+			"Are you sure you want to reboot the gateway?",
+			false,
+		)
+		if confirmErr != nil {
+			return fmt.Errorf("confirmation failed: %w", confirmErr)
+		}
+
+		if !confirmed {
 			pterm.Warning.Println("Reboot cancelled")
 
 			return nil
@@ -183,18 +249,20 @@ func reboot(_ context.Context, cmd *cli.Command) error {
 		return nil
 	}
 
-	spinner, _ := pterm.DefaultSpinner.Start("Rebooting gateway...")
+	_, ret := withSpinner(
+		"Rebooting gateway...",
+		func() (*tmhi.SignalResult, error) {
+			rebootErr := gateway.Reboot()
+			if rebootErr != nil {
+				return nil, fmt.Errorf("Reboot failed: %w", rebootErr)
+			}
 
-	err = gateway.Reboot()
-	if err != nil {
-		spinner.Fail("Reboot failed")
+			return nil, nil //nolint:nilnil // no error to report
+		},
+		"Reboot command sent successfully",
+	)
 
-		return fmt.Errorf("could not reboot gateway: %w", err)
-	}
-
-	spinner.Success("Reboot command sent successfully")
-
-	return nil
+	return ret
 }
 
 func defaultConfigPath() string {
