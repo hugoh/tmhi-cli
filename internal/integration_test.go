@@ -39,7 +39,6 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 	})
 }
 
-//nolint:dupl
 func TestInfoIntegration_FullFlow(t *testing.T) {
 	original := initGatewayFunc
 
@@ -64,7 +63,8 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 
 		err := info(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "info command failed")
+		assert.Contains(t, err.Error(), "Fetching gateway info")
+		assert.Contains(t, err.Error(), "info unavailable")
 	})
 }
 

@@ -42,13 +42,13 @@ func (w *spinnerWrapper) Fail(message ...any) {
 }
 
 func (w *spinnerWrapper) Success(message ...any) {
-	if message != nil {
-		w.spinnerPrinter.Success(message...)
+	if message == nil {
+		_ = w.spinnerPrinter.WithRemoveWhenDone().Stop()
 
 		return
 	}
 
-	_ = w.spinnerPrinter.WithRemoveWhenDone().Stop()
+	w.spinnerPrinter.Success(message...)
 }
 
 func (w *spinnerWrapper) Stop() error {
@@ -78,14 +78,15 @@ const (
 //nolint:gochecknoglobals
 var initGatewayFunc = initGateway
 
-// withSpinner runs an operation with a spinner, handling success/failure.
-// It starts a spinner with the given message, executes the function,
-// and properly stops the spinner on success or failure.
+// fetchWithFeedback runs an operation with a spinner, handling success/failure.
+// It starts a spinner with the given message, executes the fetch function,
+// displays the result using the display function, and properly stops the spinner.
 //
 //nolint:ireturn
-func withSpinner[T any](
+func fetchWithFeedback[T any](
 	message string,
-	operation func() (T, error),
+	fetch func() (T, error),
+	display func(T),
 	successMessage ...any,
 ) (T, error) {
 	spinnerInstance, err := spinnerFunc(message)
@@ -93,7 +94,7 @@ func withSpinner[T any](
 		return *new(T), err
 	}
 
-	result, opErr := operation()
+	result, opErr := fetch()
 	if opErr != nil {
 		spinnerInstance.Fail(fmt.Sprintf("%s: %v", message, opErr))
 
@@ -101,6 +102,10 @@ func withSpinner[T any](
 	}
 
 	spinnerInstance.Success(successMessage...)
+
+	if display != nil {
+		display(result)
+	}
 
 	return result, nil
 }
@@ -123,16 +128,9 @@ func login(_ context.Context, _ *cli.Command) error {
 		return err
 	}
 
-	result, err := withSpinner("Checking logging in...", func() (*tmhi.LoginResult, error) {
-		return gateway.Login()
-	})
-	if err != nil {
-		return err
-	}
+	_, err = fetchWithFeedback("Checking logging in...", gateway.Login, displayLoginResult)
 
-	displayLoginResult(result)
-
-	return nil
+	return err
 }
 
 func req(_ context.Context, cmd *cli.Command) error {
@@ -172,14 +170,9 @@ func info(_ context.Context, _ *cli.Command) error {
 		return err
 	}
 
-	result, err := gateway.Info()
-	if err != nil {
-		return fmt.Errorf("info command failed: %w", err)
-	}
+	_, err = fetchWithFeedback("Fetching gateway info...", gateway.Info, displayInfoResult)
 
-	displayInfoResult(result)
-
-	return nil
+	return err
 }
 
 func status(_ context.Context, _ *cli.Command) error {
@@ -188,16 +181,9 @@ func status(_ context.Context, _ *cli.Command) error {
 		return err
 	}
 
-	result, err := withSpinner("Checking gateway status...", func() (*tmhi.StatusResult, error) {
-		return gateway.Status()
-	})
-	if err != nil {
-		return err
-	}
+	_, err = fetchWithFeedback("Checking gateway status...", gateway.Status, displayStatusResult)
 
-	displayStatusResult(result)
-
-	return nil
+	return err
 }
 
 func signalCmd(_ context.Context, _ *cli.Command) error {
@@ -206,19 +192,13 @@ func signalCmd(_ context.Context, _ *cli.Command) error {
 		return err
 	}
 
-	result, err := withSpinner(
+	_, err = fetchWithFeedback(
 		"Fetching signal information...",
-		func() (*tmhi.SignalResult, error) {
-			return gateway.Signal()
-		},
+		gateway.Signal,
+		displaySignalResult,
 	)
-	if err != nil {
-		return err
-	}
 
-	displaySignalResult(result)
-
-	return nil
+	return err
 }
 
 func reboot(_ context.Context, cmd *cli.Command) error {
@@ -249,7 +229,7 @@ func reboot(_ context.Context, cmd *cli.Command) error {
 		return nil
 	}
 
-	_, ret := withSpinner(
+	_, ret := fetchWithFeedback(
 		"Rebooting gateway...",
 		func() (*tmhi.SignalResult, error) {
 			rebootErr := gateway.Reboot()
@@ -259,6 +239,7 @@ func reboot(_ context.Context, cmd *cli.Command) error {
 
 			return nil, nil //nolint:nilnil // no error to report
 		},
+		nil,
 		"Reboot command sent successfully",
 	)
 

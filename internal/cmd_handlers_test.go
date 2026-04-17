@@ -113,7 +113,6 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 	})
 }
 
-//nolint:dupl
 func TestInfo_SuccessAndFailure(t *testing.T) {
 	original := initGatewayFunc
 
@@ -132,7 +131,8 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 		err := info(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "info command failed")
+		assert.Contains(t, err.Error(), "Fetching gateway info")
+		assert.Contains(t, err.Error(), "info boom")
 		assert.True(t, mg.infoCalled)
 	})
 }
