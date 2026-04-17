@@ -20,7 +20,7 @@ type spinner interface {
 	Stop() error
 }
 
-// spinnerFunc creates a new spinner. Overrideable for testing.
+// spinnerFunc creates a new spinner. Overridable for testing.
 //
 //nolint:gochecknoglobals
 var spinnerFunc = func(message string) (spinner, error) {
@@ -59,7 +59,7 @@ func (w *spinnerWrapper) Stop() error {
 	return nil
 }
 
-// confirmDialog prompts the user for confirmation. Overrideable for testing.
+// confirmDialog prompts the user for confirmation. Overridable for testing.
 //
 //nolint:gochecknoglobals
 var confirmDialog = func(msg string, defaultVal bool) (bool, error) {
