@@ -3,6 +3,7 @@
 [![CI](https://github.com/hugoh/tmhi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/hugoh/tmhi-cli/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/github/hugoh/tmhi-cli/graph/badge.svg?token=9VA6Q2K9T1)](https://codecov.io/github/hugoh/tmhi-cli)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hugoh/tmhi-cli)](https://goreportcard.com/report/github.com/hugoh/tmhi-cli)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhugoh%2Ftmhi-cli.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhugoh%2Ftmhi-cli?ref=badge_shield)
 
 ## Usage
 
@@ -44,3 +45,7 @@ GLOBAL OPTIONS:
 - [cloud-unpacked/tmhi: TMHI is a CLI to manage your local T-Mobile Home Internet 5G Gateway/Router.](https://github.com/cloud-unpacked/tmhi)
 - [highvolt-dev/tmo-monitor: A lightweight, cross-platform Python 3 script that can monitor the T-Mobile Home Internet Nokia, Arcadyan, and Sagecom 5G Gateways for 4G/5G bands, cellular site (tower), and internet connectivity and reboots as needed or on-demand.](https://github.com/highvolt-dev/tmo-monitor)
 - [highvolt-dev/tmo-live-graph: A simpe react app that plots a live view of the T-Mobile Home Internet Nokia 5G Gateway signal stats, helpful for optimizing signal.](https://github.com/highvolt-dev/tmo-live-graph)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhugoh%2Ftmhi-cli.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhugoh%2Ftmhi-cli?ref=badge_large)
