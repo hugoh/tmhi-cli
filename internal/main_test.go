@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+type mockSpinner struct{}
+
+func (m *mockSpinner) Fail(_ ...any) {}
+
+func (m *mockSpinner) Success(_ ...any) {}
+
+func (m *mockSpinner) Stop() error {
+	return nil
+}
+
 func TestMain(m *testing.M) {
 	// Use a temp directory as HOME to avoid reading user's config
 	dir, err := os.MkdirTemp("", "tmhi-test-home")
@@ -14,6 +24,16 @@ func TestMain(m *testing.M) {
 
 	if err := os.Setenv("HOME", dir); err != nil {
 		os.Exit(1)
+	}
+
+	// Override spinnerFunc with a mock to prevent data races from async goroutines
+	spinnerFunc = func(_ string) (spinner, error) {
+		return &mockSpinner{}, nil
+	}
+
+	// Override confirmDialog to prevent data races from async keyboard listeners
+	confirmDialog = func(_ string, defaultVal bool) (bool, error) {
+		return defaultVal, nil
 	}
 
 	code := m.Run()

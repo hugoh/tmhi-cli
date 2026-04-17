@@ -39,7 +39,6 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 	})
 }
 
-//nolint:dupl
 func TestInfoIntegration_FullFlow(t *testing.T) {
 	original := initGatewayFunc
 
@@ -64,7 +63,8 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 
 		err := info(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "info command failed")
+		assert.Contains(t, err.Error(), "Fetching gateway info")
+		assert.Contains(t, err.Error(), "info unavailable")
 	})
 }
 
@@ -163,7 +163,7 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 
 	t.Run("reboot failure returns error", func(t *testing.T) {
 		appConfig = &Config{DryRun: false}
-		mg := &mockGateway{rebootErr: errors.New("reboot failed")}
+		mg := &mockGateway{rebootErr: errors.New("test failure")}
 		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 			return mg, nil
 		}
@@ -171,6 +171,6 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 
 		err := reboot(context.Background(), cmd)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "could not reboot gateway")
+		assert.Contains(t, err.Error(), "Reboot failed: test failure")
 	})
 }

@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"atomicgo.dev/keyboard"
-	"atomicgo.dev/keyboard/keys"
 	tmhi "github.com/hugoh/tmhi-gateway"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -115,7 +113,6 @@ func TestLogin_SuccessAndFailure(t *testing.T) {
 	})
 }
 
-//nolint:dupl
 func TestInfo_SuccessAndFailure(t *testing.T) {
 	original := initGatewayFunc
 
@@ -134,7 +131,8 @@ func TestInfo_SuccessAndFailure(t *testing.T) {
 		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 		err := info(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "info command failed")
+		assert.Contains(t, err.Error(), "Fetching gateway info")
+		assert.Contains(t, err.Error(), "info boom")
 		assert.True(t, mg.infoCalled)
 	})
 }
@@ -203,15 +201,15 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 	}()
 
 	t.Run("enter accepts default no", func(t *testing.T) {
-		testRebootConfirmCancel(t, keys.Enter)
+		testRebootConfirmCancel(t)
 	})
 
 	t.Run("y confirms reboot", func(t *testing.T) {
-		testRebootConfirmProceed(t, 'y')
+		testRebootConfirmProceed(t)
 	})
 
 	t.Run("n cancels reboot", func(t *testing.T) {
-		testRebootConfirmCancel(t, 'n')
+		testRebootConfirmCancel(t)
 	})
 
 	t.Run("auto confirm skips prompt", func(t *testing.T) {
@@ -232,32 +230,31 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 }
 
 //nolint:dupl
-func testRebootConfirmCancel(t *testing.T, key any) {
+func testRebootConfirmCancel(t *testing.T) {
 	t.Helper()
 
 	original := initGatewayFunc
 	originalConfig := appConfig
+	originalConfirm := confirmDialog
 
 	defer func() {
 		initGatewayFunc = original
 		appConfig = originalConfig
+		confirmDialog = originalConfirm
 	}()
 
 	appConfig = &Config{DryRun: false}
 	mg := &mockGateway{}
 	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
+	confirmDialog = func(_ string, _ bool) (bool, error) {
+		return false, nil // Simulate user cancelling
+	}
 	cmd := &cli.Command{
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
 			&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
 		},
 	}
-
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-
-		_ = keyboard.SimulateKeyPress(key)
-	}()
 
 	err := reboot(context.Background(), cmd)
 	require.NoError(t, err)
@@ -265,32 +262,31 @@ func testRebootConfirmCancel(t *testing.T, key any) {
 }
 
 //nolint:dupl
-func testRebootConfirmProceed(t *testing.T, key any) {
+func testRebootConfirmProceed(t *testing.T) {
 	t.Helper()
 
 	original := initGatewayFunc
 	originalConfig := appConfig
+	originalConfirm := confirmDialog
 
 	defer func() {
 		initGatewayFunc = original
 		appConfig = originalConfig
+		confirmDialog = originalConfirm
 	}()
 
 	appConfig = &Config{DryRun: false}
 	mg := &mockGateway{}
 	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
+	confirmDialog = func(_ string, _ bool) (bool, error) {
+		return true, nil // Simulate user confirming
+	}
 	cmd := &cli.Command{
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
 			&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
 		},
 	}
-
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-
-		_ = keyboard.SimulateKeyPress(key)
-	}()
 
 	err := reboot(context.Background(), cmd)
 	require.NoError(t, err)

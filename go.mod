@@ -3,10 +3,9 @@ module github.com/hugoh/tmhi-cli
 go 1.25.0
 
 require (
-	atomicgo.dev/keyboard v0.2.9
 	github.com/go-playground/validator/v10 v10.30.2
-	github.com/hugoh/cellular-signal v1.1.2
-	github.com/hugoh/tmhi-gateway v1.1.0
+	github.com/hugoh/cellular-signal v1.1.3
+	github.com/hugoh/tmhi-gateway v1.1.1
 	github.com/pterm/pterm v0.12.83
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli-altsrc/v3 v3.1.0
@@ -17,6 +16,7 @@ require (
 
 require (
 	atomicgo.dev/cursor v0.2.0 // indirect
+	atomicgo.dev/keyboard v0.2.9 // indirect
 	atomicgo.dev/schedule v0.1.0 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
