@@ -30,10 +30,6 @@ jobs:
       - run: hk check --all
         env:
           HK_PKL_BACKEND: pklr
-      - name: Upload hk log
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: hk-output-log
-          path: /home/runner/.local/state/hk/output.log
-          if-no-files-found: ignore
+      - name: Display hk log on failure
+        if: failure()
+        run: cat /home/runner/.local/state/hk/output.log
