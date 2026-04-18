@@ -22,9 +22,8 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	if err := os.Setenv("HOME", dir); err != nil {
-		os.Exit(1)
-	}
+	origHome := os.Getenv("HOME")
+	_ = os.Setenv("HOME", dir) // skipcq: GO-W1032
 
 	// Override spinnerFunc with a mock to prevent data races from async goroutines
 	spinnerFunc = func(_ string) (spinner, error) {
@@ -37,6 +36,8 @@ func TestMain(m *testing.M) {
 	}
 
 	code := m.Run()
+
+	_ = os.Setenv("HOME", origHome) // skipcq: GO-W1032
 
 	if err := os.RemoveAll(dir); err != nil {
 		os.Exit(1)
