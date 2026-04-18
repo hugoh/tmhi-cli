@@ -7,11 +7,11 @@ import (
 
 type mockSpinner struct{}
 
-func (m *mockSpinner) Fail(_ ...any) {}
+func (*mockSpinner) Fail(_ ...any) {}
 
-func (m *mockSpinner) Success(_ ...any) {}
+func (*mockSpinner) Success(_ ...any) {}
 
-func (m *mockSpinner) Stop() error {
+func (*mockSpinner) Stop() error {
 	return nil
 }
 
