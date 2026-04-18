@@ -37,7 +37,7 @@ func displaySignalResult(result *tmhi.SignalResult) {
 	}
 
 	if result.FiveG != nil {
-		extras := [][]string{}
+		var extras [][]string
 		if result.FiveG.AntennaUsed != "" {
 			extras = append(extras, []string{"Antenna", result.FiveG.AntennaUsed})
 		}
