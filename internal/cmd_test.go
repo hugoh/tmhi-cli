@@ -154,10 +154,13 @@ func TestCmd_Help(t *testing.T) {
 
 	defer func() { os.Args = oldArgs }()
 
+	var err error
+
 	out := testutil.CaptureOutput(t, func() {
-		Cmd("test-version")
+		err = Cmd("test-version")
 	})
 
+	require.NoError(t, err)
 	assert.Contains(t, out, "Utility to interact with T-Mobile Home Internet gateway")
 }
 
@@ -168,10 +171,14 @@ func TestCmd_Version(t *testing.T) {
 	defer func() { os.Args = oldArgs }()
 
 	testVersion := "test-version-123"
+
+	var err error
+
 	out := testutil.CaptureOutput(t, func() {
-		Cmd(testVersion)
+		err = Cmd(testVersion)
 	})
 
+	require.NoError(t, err)
 	assert.Contains(
 		t,
 		out,

@@ -2,11 +2,16 @@
 package main
 
 import (
+	"os"
+
 	"github.com/hugoh/tmhi-cli/internal"
 )
 
 var version = "dev"
 
 func main() {
-	internal.Cmd(version)
+	err := internal.Cmd(version)
+	if err != nil {
+		os.Exit(1)
+	}
 }

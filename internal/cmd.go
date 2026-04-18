@@ -272,7 +272,7 @@ func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 }
 
 // Cmd runs the CLI application with the given version string.
-func Cmd(version string) {
+func Cmd(version string) error {
 	var configFile string
 
 	configSource := altsrc.NewStringPtrSourcer(&configFile)
@@ -291,7 +291,5 @@ func Cmd(version string) {
 		},
 	}
 
-	if err := app.Run(context.Background(), os.Args); err != nil {
-		os.Exit(1)
-	}
+	return app.Run(context.Background(), os.Args) //nolint:wrapcheck
 }
