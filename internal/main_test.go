@@ -22,7 +22,8 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	m.Setenv("HOME", dir)
+	origHome := os.Getenv("HOME")
+	_ = os.Setenv("HOME", dir)
 
 	// Override spinnerFunc with a mock to prevent data races from async goroutines
 	spinnerFunc = func(_ string) (spinner, error) {
@@ -35,6 +36,8 @@ func TestMain(m *testing.M) {
 	}
 
 	code := m.Run()
+
+	_ = os.Setenv("HOME", origHome)
 
 	if err := os.RemoveAll(dir); err != nil {
 		os.Exit(1)
