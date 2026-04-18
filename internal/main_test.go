@@ -22,9 +22,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	if err := os.Setenv("HOME", dir); err != nil {
-		os.Exit(1)
-	}
+	m.Setenv("HOME", dir)
 
 	// Override spinnerFunc with a mock to prevent data races from async goroutines
 	spinnerFunc = func(_ string) (spinner, error) {
