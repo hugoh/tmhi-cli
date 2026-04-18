@@ -12,7 +12,7 @@ func (*mockSpinner) Fail(_ ...any) {}
 func (*mockSpinner) Success(_ ...any) {}
 
 func (*mockSpinner) Stop() error {
-    return nil
+	return nil
 }
 
 func TestMain(m *testing.M) {
