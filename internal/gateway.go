@@ -28,7 +28,7 @@ func getGateway(cfg *Config) (tmhi.Gateway, error) {
 	case NOK5G21:
 		return tmhi.NewNokiaGateway(gwConfig), nil
 	default:
-		pterm.Error.Println("unsupported gateway:", cfg.Model)
+		pterm.Error.Printf("unsupported gateway: \"%s\"\n", cfg.Model)
 
 		return nil, fmt.Errorf("%w: %s", errUnknownGateway, cfg.Model)
 	}
