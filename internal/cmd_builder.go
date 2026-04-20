@@ -139,7 +139,6 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 		&cli.StringFlag{
 			Name:        ConfigModel,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigModel, configSource)),
-			Required:    true,
 			Usage:       fmt.Sprintf("gateway model: options: %s, %s", ARCADYAN, NOK5G21),
 			Destination: &appConfig.Model,
 		},
