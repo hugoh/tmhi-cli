@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	tmhi "github.com/hugoh/tmhi-gateway"
-	"github.com/pterm/pterm"
 )
 
 var errUnknownGateway = errors.New("unknown gateway")
@@ -28,8 +27,6 @@ func getGateway(cfg *Config) (tmhi.Gateway, error) {
 	case NOK5G21:
 		return tmhi.NewNokiaGateway(gwConfig), nil
 	default:
-		pterm.Error.Printf("unsupported gateway: \"%s\"\n", cfg.Model)
-
-		return nil, fmt.Errorf("%w: %s", errUnknownGateway, cfg.Model)
+		return nil, fmt.Errorf("%w: \"%s\"", errUnknownGateway, cfg.Model)
 	}
 }
