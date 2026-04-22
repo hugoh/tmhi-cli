@@ -6,9 +6,9 @@ golangci-lint = "2.11.4"
 goreleaser = "2.15.3"
 gotestsum = "1.13.0"
 hk = "1.43.0"
-"npm:markdownlint-cli" = "0.48.0"
-prettier = "3.8.3"
+rumdl = "0.1.80"
 zizmor = "1.24.1"
+dprint = "0.54.0"
 
 [env]
 COVEROUT = "cover.out"
@@ -19,7 +19,6 @@ description = "Lint code"
 run = [
   "go mod tidy -diff",
   "golangci-lint run ./...",
-  "prettier --check .",
   "goreleaser check",
 ]
 
@@ -40,6 +39,11 @@ run = "go-test-coverage -config .testcoverage.yml"
 description = "Run CI checks (lint, test, coverage)"
 depends = ["lint", "test", "covercheck"]
 
+[tasks.full-ci]
+description = "Run CI checks + HK linting"
+depends = "ci"
+run = "hk check --profile ci --quiet"
+
 [tasks.clean]
 description = "Clean the project"
 run = ["go clean", "rm -f ${COVEROUT}"]
@@ -50,7 +54,7 @@ run = "golangci-lint run --fix ./..."
 
 [tasks.format]
 description = "Format the code"
-run = ["golangci-lint fmt ./...", "prettier --write ."]
+run = "golangci-lint fmt ./..."
 
 [tasks.tidy]
 description = "Tidy the module"
