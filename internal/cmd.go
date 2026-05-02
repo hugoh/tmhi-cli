@@ -73,6 +73,15 @@ const (
 	ARCADYAN       string        = "ARCADYAN"
 	NOK5G21        string        = "NOK5G21"
 	DefaultTimeout time.Duration = 5 * time.Second
+
+	appName      = "tmhi-cli"
+	defaultIP    = "192.168.12.1"
+	defaultUser  = "admin"
+	autoValue    = "auto"
+	cmdLogin     = "login"
+	cmdReq       = "req"
+	testAPN      = "test.apn"
+	testRegState = "registered"
 )
 
 //nolint:gochecknoglobals
@@ -259,8 +268,7 @@ func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 	colorValue := cmd.String(ConfigColor)
 	switch colorValue {
 	case "always":
-	case "auto":
-		//nolint:gosec // Fd() returns a valid int on all platforms
+	case autoValue:
 		if !term.IsTerminal(int(os.Stdout.Fd())) {
 			pterm.DisableStyling()
 		}
@@ -278,7 +286,7 @@ func Cmd(version string) error {
 	configSource := altsrc.NewStringPtrSourcer(&configFile)
 
 	app := &cli.Command{
-		Name:     "tmhi-cli",
+		Name:     appName,
 		Usage:    "Utility to interact with T-Mobile Home Internet gateway",
 		Version:  version,
 		Flags:    cmdFlags(&configFile, configSource),

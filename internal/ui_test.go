@@ -60,7 +60,7 @@ func TestDisplayStatusResult(t *testing.T) {
 	t.Run("with registration status", func(t *testing.T) {
 		result := &tmhi.StatusResult{
 			WebInterfaceUp: true,
-			Registration:   "registered",
+			Registration:   testRegState,
 		}
 
 		assert.NotPanics(t, func() { displayStatusResult(result) })
@@ -113,10 +113,10 @@ func TestDisplaySignalResult(t *testing.T) {
 				},
 			},
 			Generic: tmhi.GenericSignalInfo{
-				APN:          "test.apn",
-				HasIPv6:      false,
-				Registration: "registered",
-				Roaming:      true,
+				APN:          testAPN,
+				HasIPv6:      true,
+				Registration: testRegState,
+				Roaming:      false,
 			},
 		}
 

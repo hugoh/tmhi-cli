@@ -150,7 +150,7 @@ func TestBuildCommands(t *testing.T) {
 
 func TestCmd_Help(t *testing.T) {
 	oldArgs := os.Args
-	os.Args = []string{"tmhi-cli", "--help"}
+	os.Args = []string{appName, "--help"}
 
 	defer func() { os.Args = oldArgs }()
 
@@ -166,7 +166,7 @@ func TestCmd_Help(t *testing.T) {
 
 func TestCmd_Version(t *testing.T) {
 	oldArgs := os.Args
-	os.Args = []string{"tmhi-cli", "--version"}
+	os.Args = []string{appName, "--version"}
 
 	defer func() { os.Args = oldArgs }()
 
@@ -260,7 +260,7 @@ func TestSetupColor_AutoDefault(t *testing.T) {
 
 func TestOnUsageError(t *testing.T) {
 	app := &cli.Command{
-		Name: "tmhi-cli",
+		Name: appName,
 		OnUsageError: func(_ context.Context, cmd *cli.Command, err error, _ bool) error {
 			_, _ = fmt.Fprintf(cmd.ErrWriter, "error: %v\n", err)
 
@@ -268,7 +268,7 @@ func TestOnUsageError(t *testing.T) {
 		},
 	}
 
-	err := app.Run(context.Background(), []string{"tmhi-cli", "--invalid-flag"})
+	err := app.Run(context.Background(), []string{appName, "--invalid-flag"})
 	require.Error(t, err)
 }
 

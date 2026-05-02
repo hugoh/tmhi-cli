@@ -339,7 +339,7 @@ func TestReq_Command(t *testing.T) {
 
 		defer func() { cli.OsExiter = originalExiter }()
 
-		err := reqCmd.Run(context.Background(), []string{"tmhi-cli", "req"})
+		err := reqCmd.Run(context.Background(), []string{appName, cmdReq})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "exactly 2 arguments required")
 	})
@@ -353,8 +353,8 @@ func TestInitGateway(t *testing.T) {
 
 		appConfig = &Config{
 			Model:    NOK5G21,
-			IP:       "192.168.12.1",
-			Username: "admin",
+			IP:       defaultIP,
+			Username: defaultUser,
 			Password: "test",
 			Timeout:  5 * time.Second,
 		}
