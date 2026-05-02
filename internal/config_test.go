@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testPassword = "password"
+
 func TestConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -17,10 +19,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid config with ARCADYAN",
 			config: Config{
-				Model:    "ARCADYAN",
-				IP:       "192.168.12.1",
-				Username: "admin",
-				Password: "password",
+				Model:    ARCADYAN,
+				IP:       defaultIP,
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 				Retries:  0,
 			},
@@ -30,9 +32,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with NOK5G21",
 			config: Config{
 				Model:    "NOK5G21",
-				IP:       "192.168.12.1",
-				Username: "admin",
-				Password: "password",
+				IP:       defaultIP,
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: nil,
@@ -40,10 +42,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "IP as hostname",
 			config: Config{
-				Model:    "ARCADYAN",
+				Model:    ARCADYAN,
 				IP:       "gateway.local",
-				Username: "admin",
-				Password: "password",
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: nil,
@@ -51,9 +53,9 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing model",
 			config: Config{
-				IP:       "192.168.12.1",
-				Username: "admin",
-				Password: "password",
+				IP:       defaultIP,
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: ErrInvalidConfig,
@@ -62,9 +64,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "invalid model",
 			config: Config{
 				Model:    "INVALID",
-				IP:       "192.168.12.1",
-				Username: "admin",
-				Password: "password",
+				IP:       defaultIP,
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: ErrInvalidConfig,
@@ -72,9 +74,9 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing IP",
 			config: Config{
-				Model:    "ARCADYAN",
-				Username: "admin",
-				Password: "password",
+				Model:    ARCADYAN,
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: ErrInvalidConfig,
@@ -82,10 +84,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "invalid IP format",
 			config: Config{
-				Model:    "ARCADYAN",
+				Model:    ARCADYAN,
 				IP:       "invalid ip with spaces",
-				Username: "admin",
-				Password: "password",
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: ErrInvalidConfig,
@@ -93,10 +95,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid hostname with hyphen",
 			config: Config{
-				Model:    "ARCADYAN",
+				Model:    ARCADYAN,
 				IP:       "invalid-ip",
-				Username: "admin",
-				Password: "password",
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: nil,
@@ -104,9 +106,9 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing username",
 			config: Config{
-				Model:    "ARCADYAN",
-				IP:       "192.168.12.1",
-				Password: "password",
+				Model:    ARCADYAN,
+				IP:       defaultIP,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 			},
 			wantErr: ErrInvalidConfig,
@@ -114,10 +116,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "invalid timeout",
 			config: Config{
-				Model:    "ARCADYAN",
-				IP:       "192.168.12.1",
-				Username: "admin",
-				Password: "password",
+				Model:    ARCADYAN,
+				IP:       defaultIP,
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  0,
 			},
 			wantErr: ErrInvalidConfig,
@@ -125,10 +127,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "negative retries",
 			config: Config{
-				Model:    "ARCADYAN",
-				IP:       "192.168.12.1",
-				Username: "admin",
-				Password: "password",
+				Model:    ARCADYAN,
+				IP:       defaultIP,
+				Username: defaultUser,
+				Password: testPassword,
 				Timeout:  5 * time.Second,
 				Retries:  -1,
 			},

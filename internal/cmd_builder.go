@@ -37,7 +37,7 @@ const (
 func cmdCommands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:   "login",
+			Name:   cmdLogin,
 			Usage:  "Verify that the credentials can log the tool in",
 			Action: login,
 		},
@@ -70,12 +70,12 @@ func cmdCommands() []*cli.Command {
 			Action: signalCmd,
 		},
 		{
-			Name:      "req",
+			Name:      cmdReq,
 			Usage:     "Make a custom HTTP request to the gateway",
 			ArgsUsage: "<HTTP method> <path>",
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
-					Name:    "login",
+					Name:    cmdLogin,
 					Aliases: []string{"l"},
 					Value:   false,
 					Usage:   "login before making request",
@@ -112,9 +112,9 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 		},
 		&cli.StringFlag{
 			Name:      ConfigColor,
-			Value:     "auto",
+			Value:     autoValue,
 			Usage:     "colorize output: always, never, auto",
-			Validator: clival.Enum("always", "never", "auto"),
+			Validator: clival.Enum("always", "never", autoValue),
 		},
 		&cli.BoolFlag{
 			Name:    ConfigQuiet,
@@ -145,14 +145,14 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 		&cli.StringFlag{
 			Name:        ConfigIP,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigIP, configSource)),
-			Value:       "192.168.12.1",
+			Value:       defaultIP,
 			Usage:       "gateway IP",
 			Destination: &appConfig.IP,
 		},
 		&cli.StringFlag{
 			Name:        ConfigUsername,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigUsername, configSource)),
-			Value:       "admin",
+			Value:       defaultUser,
 			Usage:       "admin username",
 			Destination: &appConfig.Username,
 		},
