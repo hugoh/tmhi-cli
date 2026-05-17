@@ -9,39 +9,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGateway(t *testing.T) {
-	const (
-		testUser = "u"
-		testPass = "p"
-		testIP   = "192.168.1.1"
-	)
+const (
+	testUser = "u"
+	testPass = "p"
+	testIP   = "192.168.1.1"
+)
 
+func testGatewayCreation(t *testing.T, model string, expectedType any) {
+	t.Helper()
+
+	cfg := &Config{
+		Model:    model,
+		Username: testUser,
+		Password: testPass,
+		IP:       testIP,
+		Timeout:  DefaultTimeout,
+	}
+	g, err := getGateway(cfg)
+	require.NoError(t, err)
+	assert.NotNil(t, g)
+	assert.IsType(t, expectedType, g)
+}
+
+func TestGateway(t *testing.T) {
 	t.Run("Nokia gateway creation", func(t *testing.T) {
-		cfg := &Config{
-			Model:    NOK5G21,
-			Username: testUser,
-			Password: testPass,
-			IP:       testIP,
-			Timeout:  DefaultTimeout,
-		}
-		g, err := getGateway(cfg)
-		require.NoError(t, err)
-		assert.NotNil(t, g)
-		assert.IsType(t, &tmhi.NokiaGateway{}, g)
+		testGatewayCreation(t, NOK5G21, &tmhi.NokiaGateway{})
 	})
 
 	t.Run("Arcadyan gateway creation", func(t *testing.T) {
-		cfg := &Config{
-			Model:    ARCADYAN,
-			Username: testUser,
-			Password: testPass,
-			IP:       testIP,
-			Timeout:  DefaultTimeout,
-		}
-		g, err := getGateway(cfg)
-		require.NoError(t, err)
-		assert.NotNil(t, g)
-		assert.IsType(t, &tmhi.ArcadyanGateway{}, g)
+		testGatewayCreation(t, ARCADYAN, &tmhi.ArcadyanGateway{})
 	})
 
 	t.Run("Unknown gateway error", func(t *testing.T) {

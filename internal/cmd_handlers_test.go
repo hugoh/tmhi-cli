@@ -89,76 +89,84 @@ func newRebootCmd(dry bool) *cli.Command {
 	}
 }
 
-//nolint:dupl
-func TestLogin_SuccessAndFailure(t *testing.T) {
-	original := initGatewayFunc
+func TestHandlerSuccessAndFailure(t *testing.T) {
+	tests := []struct {
+		name      string
+		handler   func(context.Context, *cli.Command) error
+		called    func(*mockGateway) bool
+		setupFail func(*mockGateway)
+		errChecks []string
+	}{
+		{
+			name:    cmdLogin,
+			handler: login,
+			called:  func(mg *mockGateway) bool { return mg.loginCalled },
+			setupFail: func(mg *mockGateway) {
+				mg.loginErr = errors.New("login failed")
+			},
+			errChecks: []string{"login failed"},
+		},
+		{
+			name:    "info",
+			handler: info,
+			called:  func(mg *mockGateway) bool { return mg.infoCalled },
+			setupFail: func(mg *mockGateway) {
+				mg.infoErr = errors.New("info boom")
+			},
+			errChecks: []string{"Fetching gateway info", "info boom"},
+		},
+		{
+			name:    cmdStatus,
+			handler: status,
+			called:  func(mg *mockGateway) bool { return mg.statusCalled },
+			setupFail: func(mg *mockGateway) {
+				mg.statusErr = errors.New("status boom")
+			},
+			errChecks: []string{"Checking gateway status..."},
+		},
+		{
+			name:    cmdSignal,
+			handler: signalCmd,
+			called:  func(mg *mockGateway) bool { return mg.signalCalled },
+			setupFail: func(mg *mockGateway) {
+				mg.signalErr = errors.New("signal boom")
+			},
+			errChecks: []string{"Fetching signal information..."},
+		},
+	}
 
-	defer func() { initGatewayFunc = original }()
+	for _, tt := range tests {
+		t.Run(tt.name+"/success", func(t *testing.T) {
+			original := initGatewayFunc
+			defer func() { initGatewayFunc = original }()
 
-	t.Run("success", func(t *testing.T) {
-		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := login(context.Background(), nil)
-		require.NoError(t, err)
-		assert.True(t, mg.loginCalled)
-	})
+			mg := &mockGateway{}
+			initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 
-	t.Run("failure", func(t *testing.T) {
-		mg := &mockGateway{loginErr: errors.New("login failed")}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := login(context.Background(), nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "login failed")
-		assert.True(t, mg.loginCalled)
-	})
-}
+			err := tt.handler(context.Background(), nil)
+			require.NoError(t, err)
+			assert.True(t, tt.called(mg))
+		})
 
-func TestInfo_SuccessAndFailure(t *testing.T) {
-	original := initGatewayFunc
+		t.Run(tt.name+"/failure", func(t *testing.T) {
+			original := initGatewayFunc
+			defer func() { initGatewayFunc = original }()
 
-	defer func() { initGatewayFunc = original }()
+			mg := &mockGateway{}
+			tt.setupFail(mg)
 
-	t.Run("success", func(t *testing.T) {
-		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := info(context.Background(), nil)
-		require.NoError(t, err)
-		assert.True(t, mg.infoCalled)
-	})
+			initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 
-	t.Run("failure", func(t *testing.T) {
-		mg := &mockGateway{infoErr: errors.New("info boom")}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := info(context.Background(), nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Fetching gateway info")
-		assert.Contains(t, err.Error(), "info boom")
-		assert.True(t, mg.infoCalled)
-	})
-}
+			err := tt.handler(context.Background(), nil)
+			require.Error(t, err)
 
-//nolint:dupl
-func TestStatus_SuccessAndFailure(t *testing.T) {
-	original := initGatewayFunc
+			for _, check := range tt.errChecks {
+				assert.Contains(t, err.Error(), check)
+			}
 
-	defer func() { initGatewayFunc = original }()
-
-	t.Run("success", func(t *testing.T) {
-		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := status(context.Background(), nil)
-		require.NoError(t, err)
-		assert.True(t, mg.statusCalled)
-	})
-
-	t.Run("failure", func(t *testing.T) {
-		mg := &mockGateway{statusErr: errors.New("status boom")}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := status(context.Background(), nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Checking gateway status...")
-		assert.True(t, mg.statusCalled)
-	})
+			assert.True(t, tt.called(mg))
+		})
+	}
 }
 
 func TestReboot_DryRunFlagAndFailure(t *testing.T) {
@@ -201,15 +209,15 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 	}()
 
 	t.Run("enter accepts default no", func(t *testing.T) {
-		testRebootConfirmCancel(t)
+		testRebootConfirm(t, false, false, "reboot should be cancelled")
 	})
 
 	t.Run("y confirms reboot", func(t *testing.T) {
-		testRebootConfirmProceed(t)
+		testRebootConfirm(t, true, true, "reboot should proceed")
 	})
 
 	t.Run("n cancels reboot", func(t *testing.T) {
-		testRebootConfirmCancel(t)
+		testRebootConfirm(t, false, false, "reboot should be cancelled")
 	})
 
 	t.Run("auto confirm skips prompt", func(t *testing.T) {
@@ -229,8 +237,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 	})
 }
 
-//nolint:dupl
-func testRebootConfirmCancel(t *testing.T) {
+func testRebootConfirm(t *testing.T, confirmResult bool, expectCalled bool, msg string) {
 	t.Helper()
 
 	original := initGatewayFunc
@@ -247,7 +254,7 @@ func testRebootConfirmCancel(t *testing.T) {
 	mg := &mockGateway{}
 	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 	confirmDialog = func(_ string, _ bool) (bool, error) {
-		return false, nil // Simulate user cancelling
+		return confirmResult, nil
 	}
 	cmd := &cli.Command{
 		Flags: []cli.Flag{
@@ -258,63 +265,7 @@ func testRebootConfirmCancel(t *testing.T) {
 
 	err := reboot(context.Background(), cmd)
 	require.NoError(t, err)
-	assert.False(t, mg.rebootCalled, "reboot should be cancelled")
-}
-
-//nolint:dupl
-func testRebootConfirmProceed(t *testing.T) {
-	t.Helper()
-
-	original := initGatewayFunc
-	originalConfig := appConfig
-	originalConfirm := confirmDialog
-
-	defer func() {
-		initGatewayFunc = original
-		appConfig = originalConfig
-		confirmDialog = originalConfirm
-	}()
-
-	appConfig = &Config{DryRun: false}
-	mg := &mockGateway{}
-	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-	confirmDialog = func(_ string, _ bool) (bool, error) {
-		return true, nil // Simulate user confirming
-	}
-	cmd := &cli.Command{
-		Flags: []cli.Flag{
-			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
-			&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
-		},
-	}
-
-	err := reboot(context.Background(), cmd)
-	require.NoError(t, err)
-	assert.True(t, mg.rebootCalled, "reboot should proceed")
-}
-
-//nolint:dupl
-func TestSignal_SuccessAndFailure(t *testing.T) {
-	original := initGatewayFunc
-
-	defer func() { initGatewayFunc = original }()
-
-	t.Run("success", func(t *testing.T) {
-		mg := &mockGateway{}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := signalCmd(context.Background(), nil)
-		require.NoError(t, err)
-		assert.True(t, mg.signalCalled)
-	})
-
-	t.Run("failure", func(t *testing.T) {
-		mg := &mockGateway{signalErr: errors.New("signal boom")}
-		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
-		err := signalCmd(context.Background(), nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Fetching signal information...")
-		assert.True(t, mg.signalCalled)
-	})
+	assert.Equal(t, expectCalled, mg.rebootCalled, msg)
 }
 
 func TestReq_Command(t *testing.T) {

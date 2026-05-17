@@ -80,6 +80,8 @@ const (
 	autoValue    = "auto"
 	cmdLogin     = "login"
 	cmdReq       = "req"
+	cmdStatus    = "status"
+	cmdSignal    = "signal"
 	testAPN      = "test.apn"
 	testRegState = "registered"
 )
@@ -121,6 +123,10 @@ func fetchWithFeedback[T any](
 
 //nolint:ireturn
 func initGateway(_ *Config) (tmhi.Gateway, error) {
+	if err := appConfig.Validate(); err != nil {
+		return nil, err
+	}
+
 	gateway, err := getGateway(appConfig)
 	if err != nil {
 		pterm.Error.Println("could not instantiate gateway:", err)
