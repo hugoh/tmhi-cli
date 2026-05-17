@@ -1,42 +1,49 @@
-amends "package://github.com/jdx/hk/releases/download/v1.43.0/hk@1.43.0#/Config.pkl"
-import "package://github.com/jdx/hk/releases/download/v1.43.0/hk@1.43.0#/Builtins.pkl"
+amends "package://github.com/jdx/hk/releases/download/v1.45.0/hk@1.45.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.45.0/hk@1.45.0#/Builtins.pkl"
 
 local linters = new Mapping<String, Step> {
-    ["golangci-lint"] = (Builtins.golangci_lint) {
-        profiles = List("!ci")
-    }
-    ["gomod-tidy"] = Builtins.gomod_tidy
-    ["actionlint"] = Builtins.actionlint
-    ["conflicts"] = Builtins.check_merge_conflict
-    ["case-conflict"] = Builtins.check_case_conflict
-    ["large-files"] = Builtins.check_added_large_files
-    ["executables"] = Builtins.check_executables_have_shebangs
-    ["gitleaks"] = Builtins.gitleaks
-    ["ghalint"] = Builtins.ghalint_workflow
-    ["markdown"] = Builtins.rumdl
-    ["dprint"]      = Builtins.dprint
-    ["zizmor"]        = Builtins.zizmor
-    ["shellcheck"] = Builtins.shellcheck
+  ["golangci-lint"] = (Builtins.golangci_lint) {
+    profiles = List("!ci")
+  }
+  ["gomod-tidy"] = Builtins.gomod_tidy
+  ["actionlint"] = Builtins.actionlint
+  ["conflicts"] = Builtins.check_merge_conflict
+  ["case-conflict"] = Builtins.check_case_conflict
+  ["large-files"] = Builtins.check_added_large_files
+  ["executables"] = Builtins.check_executables_have_shebangs
+  ["gitleaks"] = Builtins.gitleaks
+  ["ghalint"] = Builtins.ghalint_workflow
+  ["markdown"] = Builtins.rumdl
+  ["dprint"] = Builtins.dprint
+  ["zizmor"] = Builtins.zizmor
+  ["shellcheck"] = Builtins.shellcheck
+  ["conventional-commit"] {
+    check = "cog check --from-latest-tag"
+  }
+  ["duplication"] = {
+    check = "jscpd"
+  }
 }
 
 hooks {
-    ["pre-commit"] {
-        stash = "git"
+  ["pre-commit"] {
+    stash = "git"
+    steps = linters
+  }
+["pre-push"] {
         steps = linters
     }
-    ["pre-push"] {
-        steps = linters
+  ["fix"] {
+    fix = true
+    steps = linters
+  }
+  ["check"] {
+    steps = linters
+  }
+  ["commit-msg"] {
+    steps = new Mapping<String, Step> {
+      ["check-conventional-commit"] = Builtins.check_conventional_commit
+      ["cocogitto_commit_msg"] = Builtins.cocogitto_commit_msg
     }
-    ["fix"] {
-        fix = true
-        steps = linters
-    }
-    ["check"] {
-        steps = linters
-    }
-    ["commit-msg"] {
-        steps {
-            ["check-conventional-commit"] = Builtins.check_conventional_commit
-        }
-    }
+  }
 }

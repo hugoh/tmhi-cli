@@ -60,12 +60,12 @@ func cmdCommands() []*cli.Command {
 			Action: info,
 		},
 		{
-			Name:   "status",
+			Name:   cmdStatus,
 			Usage:  "Check gateway status",
 			Action: status,
 		},
 		{
-			Name:   "signal",
+			Name:   cmdSignal,
 			Usage:  "Display signal strength information",
 			Action: signalCmd,
 		},

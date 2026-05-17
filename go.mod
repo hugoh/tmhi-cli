@@ -11,6 +11,7 @@ require (
 	github.com/urfave/cli-altsrc/v3 v3.1.0
 	github.com/urfave/cli-validation v0.0.0-20230629031421-92802a7fd6e9
 	github.com/urfave/cli/v3 v3.8.0
+	github.com/zenizh/go-capturer v0.0.0-20211219060012-52ea6c8fed04
 	golang.org/x/term v0.42.0
 )
 

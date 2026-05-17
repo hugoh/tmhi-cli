@@ -5,15 +5,37 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
-	"github.com/hugoh/tmhi-cli/testutil"
 	tmhi "github.com/hugoh/tmhi-gateway"
 	"github.com/pterm/pterm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
+	capturer "github.com/zenizh/go-capturer"
 )
+
+func TestCaptureOutput(t *testing.T) {
+	output := capturer.CaptureOutput(func() {
+		fmt.Print("hello world") //nolint:forbidigo
+	})
+
+	if !strings.Contains(output, "hello world") {
+		t.Errorf("expected output to contain 'hello world', got %q", output)
+	}
+}
+
+func TestCaptureOutput_MultipleWrites(t *testing.T) {
+	output := capturer.CaptureOutput(func() {
+		fmt.Print("line1") //nolint:forbidigo
+		fmt.Print("line2") //nolint:forbidigo
+	})
+
+	if !strings.Contains(output, "line1") || !strings.Contains(output, "line2") {
+		t.Errorf("expected output to contain 'line1' and 'line2', got %q", output)
+	}
+}
 
 func TestFetchWithFeedback_Success(t *testing.T) {
 	pterm.DisableStyling()
@@ -156,7 +178,7 @@ func TestCmd_Help(t *testing.T) {
 
 	var err error
 
-	out := testutil.CaptureOutput(t, func() {
+	out := capturer.CaptureOutput(func() {
 		err = Cmd("test-version")
 	})
 
@@ -174,7 +196,7 @@ func TestCmd_Version(t *testing.T) {
 
 	var err error
 
-	out := testutil.CaptureOutput(t, func() {
+	out := capturer.CaptureOutput(func() {
 		err = Cmd(testVersion)
 	})
 
@@ -324,58 +346,30 @@ func TestQuietFlagAction(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestLogin_GatewayInitError(t *testing.T) {
-	originalInitFunc := initGatewayFunc
-
-	defer func() { initGatewayFunc = originalInitFunc }()
-
-	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
-		return nil, errors.New("gateway init failed")
+func TestGatewayInitErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		handler func(context.Context, *cli.Command) error
+	}{
+		{cmdLogin, login},
+		{cmdStatus, status},
+		{cmdSignal, signalCmd},
+		{"reboot", reboot},
 	}
 
-	err := login(context.Background(), nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "gateway init failed")
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			originalInitFunc := initGatewayFunc
 
-func TestStatus_GatewayInitError(t *testing.T) {
-	originalInitFunc := initGatewayFunc
+			defer func() { initGatewayFunc = originalInitFunc }()
 
-	defer func() { initGatewayFunc = originalInitFunc }()
+			initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
+				return nil, errors.New("gateway init failed")
+			}
 
-	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
-		return nil, errors.New("gateway init failed")
+			err := tt.handler(context.Background(), nil)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "gateway init failed")
+		})
 	}
-
-	err := status(context.Background(), nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "gateway init failed")
-}
-
-func TestSignalCmd_GatewayInitError(t *testing.T) {
-	originalInitFunc := initGatewayFunc
-
-	defer func() { initGatewayFunc = originalInitFunc }()
-
-	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
-		return nil, errors.New("gateway init failed")
-	}
-
-	err := signalCmd(context.Background(), nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "gateway init failed")
-}
-
-func TestReboot_GatewayInitError(t *testing.T) {
-	originalInitFunc := initGatewayFunc
-
-	defer func() { initGatewayFunc = originalInitFunc }()
-
-	initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
-		return nil, errors.New("gateway init failed")
-	}
-
-	err := reboot(context.Background(), nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "gateway init failed")
 }
