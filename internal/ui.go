@@ -9,12 +9,6 @@ import (
 	"github.com/pterm/pterm"
 )
 
-func displayLoginResult(result *tmhi.LoginResult) {
-	if result.Success {
-		pterm.Success.Println("Successfully logged in")
-	}
-}
-
 func displayStatusResult(result *tmhi.StatusResult) {
 	switch {
 	case result.WebInterfaceUp:

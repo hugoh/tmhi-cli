@@ -10,24 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisplayLoginResult(t *testing.T) {
-	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
-
-	t.Run("success", func(t *testing.T) {
-		result := &tmhi.LoginResult{Success: true}
-
-		assert.NotPanics(t, func() { displayLoginResult(result) })
-	})
-
-	t.Run("failure", func(t *testing.T) {
-		result := &tmhi.LoginResult{Success: false}
-
-		assert.NotPanics(t, func() { displayLoginResult(result) })
-	})
-}
-
 func TestDisplayStatusResult(t *testing.T) {
 	pterm.DisableStyling()
 

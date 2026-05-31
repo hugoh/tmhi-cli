@@ -34,7 +34,7 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 
 		err := login(context.Background(), nil)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Checking logging in...")
+		assert.Contains(t, err.Error(), "Logging in...")
 		assert.True(t, mg.loginCalled, "login should still be attempted")
 	})
 }
