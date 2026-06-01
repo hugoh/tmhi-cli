@@ -143,7 +143,14 @@ func login(_ context.Context, _ *cli.Command) error {
 		return err
 	}
 
-	_, err = fetchWithFeedback("Checking logging in...", gateway.Login, displayLoginResult)
+	_, err = fetchWithFeedback(
+		"Logging in...",
+		func() (*tmhi.StatusResult, error) {
+			return nil, gateway.Login()
+		},
+		nil,
+		"Successfully logged in",
+	)
 
 	return err
 }
@@ -164,7 +171,7 @@ func req(_ context.Context, cmd *cli.Command) error {
 	loginFirst := cmd.Bool("login")
 
 	if loginFirst {
-		if _, err := gateway.Login(); err != nil {
+		if err := gateway.Login(); err != nil {
 			return fmt.Errorf("request failed: %w", err)
 		}
 	}
