@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator/v10"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/pterm/pterm"
 )
 
@@ -15,18 +16,15 @@ var ErrInvalidConfig = errors.New("invalid configuration")
 
 // Config holds all configuration values for the CLI application.
 type Config struct {
-	Model    string `validate:"required,oneof=ARCADYAN NOK5G21"`
-	IP       string `validate:"required,hostname|ip"`
-	Username string `validate:"required"`
+	Model    string
+	IP       string
+	Username string
 	Password string
-	Timeout  time.Duration `validate:"required,min=1s"`
-	Retries  int           `validate:"min=0"`
+	Timeout  time.Duration
+	Retries  int
 	Debug    bool
 	DryRun   bool
 }
-
-//nolint:gochecknoglobals
-var validate = validator.New(validator.WithRequiredStructEnabled())
 
 //nolint:gochecknoglobals
 var fieldToFlag = map[string]string{
@@ -42,15 +40,22 @@ var fieldToFlag = map[string]string{
 
 // Validate validates the Config struct and returns formatted errors.
 func (c *Config) Validate() error {
-	if err := validate.Struct(c); err != nil {
-		var ve validator.ValidationErrors
-		if errors.As(err, &ve) {
-			for _, fe := range ve {
-				flagName := flagNameFromField(fe.Field())
-				pterm.Error.Printf("error: --%s: %s\n", flagName, fe.Tag())
+	err := validation.ValidateStruct(c,
+		validation.Field(&c.Model, validation.Required, validation.In("ARCADYAN", "NOK5G21")),
+		validation.Field(&c.IP, validation.Required, is.Host),
+		validation.Field(&c.Username, validation.Required),
+		validation.Field(&c.Timeout, validation.Required, validation.Min(1*time.Second)),
+		validation.Field(&c.Retries, validation.Min(0)),
+	)
+	if err != nil {
+		var errs validation.Errors
+		if errors.As(err, &errs) {
+			for field, fieldErr := range errs {
+				if fieldErr != nil {
+					flagName := flagNameFromField(field)
+					pterm.Error.Printf("error: --%s: %s\n", flagName, fieldErr.Error())
+				}
 			}
-
-			return fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 		}
 
 		return fmt.Errorf("%w: %w", ErrInvalidConfig, err)
