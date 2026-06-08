@@ -95,8 +95,9 @@ var initGatewayFunc = initGateway
 //
 //nolint:ireturn
 func fetchWithFeedback[T any](
+	ctx context.Context,
 	message string,
-	fetch func() (T, error),
+	fetch func(context.Context) (T, error),
 	display func(T),
 	successMessage ...any,
 ) (T, error) {
@@ -105,7 +106,7 @@ func fetchWithFeedback[T any](
 		return *new(T), err
 	}
 
-	result, opErr := fetch()
+	result, opErr := fetch(ctx)
 	if opErr != nil {
 		spinnerInstance.Fail(fmt.Sprintf("%s: %v", message, opErr))
 
@@ -137,16 +138,17 @@ func initGateway(_ *Config) (tmhi.Gateway, error) {
 	return gateway, nil
 }
 
-func login(_ context.Context, _ *cli.Command) error {
+func login(ctx context.Context, _ *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
 	_, err = fetchWithFeedback(
+		ctx,
 		"Logging in...",
-		func() (*tmhi.StatusResult, error) {
-			return nil, gateway.Login()
+		func(ctx context.Context) (*tmhi.StatusResult, error) {
+			return nil, gateway.Login(ctx)
 		},
 		nil,
 		"Successfully logged in",
@@ -155,7 +157,7 @@ func login(_ context.Context, _ *cli.Command) error {
 	return err
 }
 
-func req(_ context.Context, cmd *cli.Command) error {
+func req(ctx context.Context, cmd *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
@@ -171,12 +173,12 @@ func req(_ context.Context, cmd *cli.Command) error {
 	loginFirst := cmd.Bool("login")
 
 	if loginFirst {
-		if err := gateway.Login(); err != nil {
+		if err := gateway.Login(ctx); err != nil {
 			return fmt.Errorf("request failed: %w", err)
 		}
 	}
 
-	result, err := gateway.Request(method, path)
+	result, err := gateway.Request(ctx, method, path)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -186,35 +188,41 @@ func req(_ context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func info(_ context.Context, _ *cli.Command) error {
+func info(ctx context.Context, _ *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
-	_, err = fetchWithFeedback("Fetching gateway info...", gateway.Info, displayInfoResult)
+	_, err = fetchWithFeedback(ctx, "Fetching gateway info...", gateway.Info, displayInfoResult)
 
 	return err
 }
 
-func status(_ context.Context, _ *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
-	if err != nil {
-		return err
-	}
-
-	_, err = fetchWithFeedback("Checking gateway status...", gateway.Status, displayStatusResult)
-
-	return err
-}
-
-func signalCmd(_ context.Context, _ *cli.Command) error {
+func status(ctx context.Context, _ *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
 	}
 
 	_, err = fetchWithFeedback(
+		ctx,
+		"Checking gateway status...",
+		gateway.Status,
+		displayStatusResult,
+	)
+
+	return err
+}
+
+func signalCmd(ctx context.Context, _ *cli.Command) error {
+	gateway, err := initGatewayFunc(appConfig)
+	if err != nil {
+		return err
+	}
+
+	_, err = fetchWithFeedback(
+		ctx,
 		"Fetching signal information...",
 		gateway.Signal,
 		displaySignalResult,
@@ -223,7 +231,7 @@ func signalCmd(_ context.Context, _ *cli.Command) error {
 	return err
 }
 
-func reboot(_ context.Context, cmd *cli.Command) error {
+func reboot(ctx context.Context, cmd *cli.Command) error {
 	gateway, err := initGatewayFunc(appConfig)
 	if err != nil {
 		return err
@@ -252,9 +260,10 @@ func reboot(_ context.Context, cmd *cli.Command) error {
 	}
 
 	_, ret := fetchWithFeedback(
+		ctx,
 		"Rebooting gateway...",
-		func() (*tmhi.SignalResult, error) {
-			rebootErr := gateway.Reboot()
+		func(ctx context.Context) (*tmhi.SignalResult, error) {
+			rebootErr := gateway.Reboot(ctx)
 			if rebootErr != nil {
 				return nil, fmt.Errorf("Reboot failed: %w", rebootErr)
 			}

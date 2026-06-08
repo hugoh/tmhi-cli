@@ -48,8 +48,7 @@ func (c *Config) Validate() error {
 		validation.Field(&c.Retries, validation.Min(0)),
 	)
 	if err != nil {
-		var errs validation.Errors
-		if errors.As(err, &errs) {
+		if errs, ok := errors.AsType[validation.Errors](err); ok {
 			for field, fieldErr := range errs {
 				if fieldErr != nil {
 					flagName := flagNameFromField(field)
