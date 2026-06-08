@@ -12,8 +12,7 @@ import (
 
 func TestDisplayStatusResult(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	t.Run("web interface up", func(t *testing.T) {
 		result := &tmhi.StatusResult{WebInterfaceUp: true}
@@ -51,8 +50,7 @@ func TestDisplayStatusResult(t *testing.T) {
 
 func TestDisplaySignalResult(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	t.Run("with 4G signal", func(t *testing.T) {
 		result := &tmhi.SignalResult{
@@ -146,8 +144,7 @@ func TestDisplaySignalResult(t *testing.T) {
 
 func TestDisplayInfoResult(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	result := &tmhi.InfoResult{}
 

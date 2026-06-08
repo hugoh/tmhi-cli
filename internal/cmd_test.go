@@ -39,8 +39,7 @@ func TestCaptureOutput_MultipleWrites(t *testing.T) {
 
 func TestFetchWithFeedback_Success(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	result, err := fetchWithFeedback("Test operation", func() (string, error) {
 		return "success", nil
@@ -52,8 +51,7 @@ func TestFetchWithFeedback_Success(t *testing.T) {
 
 func TestFetchWithFeedback_Error(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	expectedErr := errors.New("operation failed")
 	result, err := fetchWithFeedback("Test operation", func() (string, error) {
@@ -68,8 +66,7 @@ func TestFetchWithFeedback_Error(t *testing.T) {
 
 func TestFetchWithFeedback_WithPointerType(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	type testResult struct {
 		Value int
@@ -86,8 +83,7 @@ func TestFetchWithFeedback_WithPointerType(t *testing.T) {
 
 func TestFetchWithFeedback_ErrorWrapping(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	originalErr := errors.New("underlying error")
 	_, err := fetchWithFeedback("Doing something", func() (int, error) {
@@ -100,8 +96,7 @@ func TestFetchWithFeedback_ErrorWrapping(t *testing.T) {
 
 func TestFetchWithFeedback_WithDisplay(t *testing.T) {
 	pterm.DisableStyling()
-
-	defer pterm.EnableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
 	displayCalled := false
 
@@ -121,9 +116,9 @@ func TestFetchWithFeedback_WithDisplay(t *testing.T) {
 }
 
 func TestFetchWithFeedback_SpinnerError(t *testing.T) {
-	originalSpinnerFunc := spinnerFunc
+	origSpinner := spinnerFunc
 
-	defer func() { spinnerFunc = originalSpinnerFunc }()
+	t.Cleanup(func() { spinnerFunc = origSpinner })
 
 	spinnerFunc = func(_ string) (spinner, error) {
 		return nil, errors.New("spinner failed")
@@ -174,7 +169,7 @@ func TestCmd_Help(t *testing.T) {
 	oldArgs := os.Args
 	os.Args = []string{appName, "--help"}
 
-	defer func() { os.Args = oldArgs }()
+	t.Cleanup(func() { os.Args = oldArgs })
 
 	var err error
 
@@ -190,7 +185,7 @@ func TestCmd_Version(t *testing.T) {
 	oldArgs := os.Args
 	os.Args = []string{appName, "--version"}
 
-	defer func() { os.Args = oldArgs }()
+	t.Cleanup(func() { os.Args = oldArgs })
 
 	testVersion := "test-version-123"
 
@@ -227,7 +222,7 @@ func TestSetupColor_Never(t *testing.T) {
 	// Simulate parsing the flag
 	_ = cmd.Set("color", "never")
 
-	_, err := setupColor(context.Background(), cmd)
+	_, err := setupColor(t.Context(), cmd)
 	require.NoError(t, err)
 	assert.True(t, pterm.RawOutput, "pterm.RawOutput should be true after --color=never")
 }
@@ -248,7 +243,7 @@ func TestSetupColor_Always(t *testing.T) {
 
 	_ = cmd.Set("color", "always")
 
-	_, err := setupColor(context.Background(), cmd)
+	_, err := setupColor(t.Context(), cmd)
 	require.NoError(t, err)
 	assert.False(t, pterm.RawOutput, "pterm.RawOutput should be false after --color=always")
 }
@@ -268,7 +263,7 @@ func TestSetupColor_AutoDefault(t *testing.T) {
 	}
 
 	// Don't set the flag - test default behavior
-	_, err := setupColor(context.Background(), cmd)
+	_, err := setupColor(t.Context(), cmd)
 	require.NoError(t, err)
 
 	// In test environment, stdout is typically not a terminal
@@ -290,13 +285,13 @@ func TestOnUsageError(t *testing.T) {
 		},
 	}
 
-	err := app.Run(context.Background(), []string{appName, "--invalid-flag"})
+	err := app.Run(t.Context(), []string{appName, "--invalid-flag"})
 	require.Error(t, err)
 }
 
 func TestDebugFlagAction(t *testing.T) {
 	pterm.DisableDebugMessages()
-	defer pterm.DisableDebugMessages()
+	t.Cleanup(pterm.DisableDebugMessages)
 
 	var configFile string
 
@@ -316,13 +311,13 @@ func TestDebugFlagAction(t *testing.T) {
 	require.NotNil(t, debugFlag.Action)
 
 	cmd := &cli.Command{Flags: flags}
-	err := debugFlag.Action(context.Background(), cmd, true)
+	err := debugFlag.Action(t.Context(), cmd, true)
 	require.NoError(t, err)
 }
 
 func TestQuietFlagAction(t *testing.T) {
 	pterm.EnableOutput()
-	defer pterm.EnableOutput()
+	t.Cleanup(pterm.EnableOutput)
 
 	var configFile string
 
@@ -342,7 +337,7 @@ func TestQuietFlagAction(t *testing.T) {
 	require.NotNil(t, quietFlag.Action)
 
 	cmd := &cli.Command{Flags: flags}
-	err := quietFlag.Action(context.Background(), cmd, true)
+	err := quietFlag.Action(t.Context(), cmd, true)
 	require.NoError(t, err)
 }
 
@@ -359,15 +354,15 @@ func TestGatewayInitErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			originalInitFunc := initGatewayFunc
+			origInit := initGatewayFunc
 
-			defer func() { initGatewayFunc = originalInitFunc }()
+			t.Cleanup(func() { initGatewayFunc = origInit })
 
 			initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
 				return nil, errors.New("gateway init failed")
 			}
 
-			err := tt.handler(context.Background(), nil)
+			err := tt.handler(t.Context(), nil)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "gateway init failed")
 		})

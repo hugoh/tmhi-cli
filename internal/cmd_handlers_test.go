@@ -134,27 +134,29 @@ func TestHandlerSuccessAndFailure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name+"/success", func(t *testing.T) {
-			original := initGatewayFunc
-			defer func() { initGatewayFunc = original }()
+			orig := initGatewayFunc
+
+			t.Cleanup(func() { initGatewayFunc = orig })
 
 			mg := &mockGateway{}
 			initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 
-			err := tt.handler(context.Background(), nil)
+			err := tt.handler(t.Context(), nil)
 			require.NoError(t, err)
 			assert.True(t, tt.called(mg))
 		})
 
 		t.Run(tt.name+"/failure", func(t *testing.T) {
-			original := initGatewayFunc
-			defer func() { initGatewayFunc = original }()
+			orig := initGatewayFunc
+
+			t.Cleanup(func() { initGatewayFunc = orig })
 
 			mg := &mockGateway{}
 			tt.setupFail(mg)
 
 			initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 
-			err := tt.handler(context.Background(), nil)
+			err := tt.handler(t.Context(), nil)
 			require.Error(t, err)
 
 			for _, check := range tt.errChecks {
@@ -167,20 +169,20 @@ func TestHandlerSuccessAndFailure(t *testing.T) {
 }
 
 func TestReboot_DryRunFlagAndFailure(t *testing.T) {
-	original := initGatewayFunc
-	originalConfig := appConfig
+	origInit := initGatewayFunc
+	origConfig := appConfig
 
-	defer func() {
-		initGatewayFunc = original
-		appConfig = originalConfig
-	}()
+	t.Cleanup(func() {
+		initGatewayFunc = origInit
+		appConfig = origConfig
+	})
 
 	t.Run("dry-run true returns early without calling gateway", func(t *testing.T) {
 		appConfig = &Config{DryRun: true}
 		mg := &mockGateway{}
 		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 		cmd := newRebootCmd(true)
-		err := reboot(context.Background(), cmd)
+		err := reboot(t.Context(), cmd)
 		require.NoError(t, err)
 		assert.False(t, mg.rebootCalled)
 	})
@@ -190,20 +192,20 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 		mg := &mockGateway{rebootErr: errors.New("reboot boom")}
 		initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) { return mg, nil }
 		cmd := newRebootCmd(false)
-		err := reboot(context.Background(), cmd)
+		err := reboot(t.Context(), cmd)
 		require.Error(t, err)
 		assert.True(t, mg.rebootCalled)
 	})
 }
 
 func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
-	original := initGatewayFunc
-	originalConfig := appConfig
+	origInit := initGatewayFunc
+	origConfig := appConfig
 
-	defer func() {
-		initGatewayFunc = original
-		appConfig = originalConfig
-	}()
+	t.Cleanup(func() {
+		initGatewayFunc = origInit
+		appConfig = origConfig
+	})
 
 	t.Run("enter accepts default no", func(t *testing.T) {
 		testRebootConfirm(t, false, false, "reboot should be cancelled")
@@ -228,7 +230,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 			},
 		}
 
-		err := reboot(context.Background(), cmd)
+		err := reboot(t.Context(), cmd)
 		require.NoError(t, err)
 		assert.True(t, mg.rebootCalled, "reboot should proceed with auto-confirm")
 	})
@@ -237,15 +239,15 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 func testRebootConfirm(t *testing.T, confirmResult bool, expectCalled bool, msg string) {
 	t.Helper()
 
-	original := initGatewayFunc
-	originalConfig := appConfig
-	originalConfirm := confirmDialog
+	origInit := initGatewayFunc
+	origConfig := appConfig
+	origConfirm := confirmDialog
 
-	defer func() {
-		initGatewayFunc = original
-		appConfig = originalConfig
-		confirmDialog = originalConfirm
-	}()
+	t.Cleanup(func() {
+		initGatewayFunc = origInit
+		appConfig = origConfig
+		confirmDialog = origConfirm
+	})
 
 	appConfig = &Config{DryRun: false}
 	mg := &mockGateway{}
@@ -260,15 +262,15 @@ func testRebootConfirm(t *testing.T, confirmResult bool, expectCalled bool, msg 
 		},
 	}
 
-	err := reboot(context.Background(), cmd)
+	err := reboot(t.Context(), cmd)
 	require.NoError(t, err)
 	assert.Equal(t, expectCalled, mg.rebootCalled, msg)
 }
 
 func TestReq_Command(t *testing.T) {
-	original := initGatewayFunc
+	orig := initGatewayFunc
 
-	defer func() { initGatewayFunc = original }()
+	t.Cleanup(func() { initGatewayFunc = orig })
 
 	t.Run("wrong number of arguments", func(t *testing.T) {
 		mg := &mockGateway{}
@@ -282,12 +284,12 @@ func TestReq_Command(t *testing.T) {
 			},
 		}
 
-		originalExiter := cli.OsExiter
+		origExiter := cli.OsExiter
 		cli.OsExiter = func(_ int) {}
 
-		defer func() { cli.OsExiter = originalExiter }()
+		t.Cleanup(func() { cli.OsExiter = origExiter })
 
-		err := reqCmd.Run(context.Background(), []string{appName, cmdReq})
+		err := reqCmd.Run(t.Context(), []string{appName, cmdReq})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "exactly 2 arguments required")
 	})
@@ -295,9 +297,9 @@ func TestReq_Command(t *testing.T) {
 
 func TestInitGateway(t *testing.T) {
 	t.Run("returns gateway on success", func(t *testing.T) {
-		originalConfig := appConfig
+		origConfig := appConfig
 
-		defer func() { appConfig = originalConfig }()
+		t.Cleanup(func() { appConfig = origConfig })
 
 		appConfig = &Config{
 			Model:    NOK5G21,

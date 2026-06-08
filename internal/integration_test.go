@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -11,9 +10,9 @@ import (
 )
 
 func TestLoginIntegration_FullFlow(t *testing.T) {
-	original := initGatewayFunc
+	orig := initGatewayFunc
 
-	defer func() { initGatewayFunc = original }()
+	t.Cleanup(func() { initGatewayFunc = orig })
 
 	t.Run("successful login flow", func(t *testing.T) {
 		mg := &mockGateway{}
@@ -21,7 +20,7 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := login(context.Background(), nil)
+		err := login(t.Context(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.loginCalled, "login should be called")
 	})
@@ -32,7 +31,7 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := login(context.Background(), nil)
+		err := login(t.Context(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Logging in...")
 		assert.True(t, mg.loginCalled, "login should still be attempted")
@@ -40,9 +39,9 @@ func TestLoginIntegration_FullFlow(t *testing.T) {
 }
 
 func TestInfoIntegration_FullFlow(t *testing.T) {
-	original := initGatewayFunc
+	orig := initGatewayFunc
 
-	defer func() { initGatewayFunc = original }()
+	t.Cleanup(func() { initGatewayFunc = orig })
 
 	t.Run("successful info retrieval", func(t *testing.T) {
 		mg := &mockGateway{}
@@ -50,7 +49,7 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := info(context.Background(), nil)
+		err := info(t.Context(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.infoCalled, "info should be called")
 	})
@@ -61,7 +60,7 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := info(context.Background(), nil)
+		err := info(t.Context(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Fetching gateway info")
 		assert.Contains(t, err.Error(), "info unavailable")
@@ -70,9 +69,9 @@ func TestInfoIntegration_FullFlow(t *testing.T) {
 
 //nolint:dupl
 func TestStatusIntegration_FullFlow(t *testing.T) {
-	original := initGatewayFunc
+	orig := initGatewayFunc
 
-	defer func() { initGatewayFunc = original }()
+	t.Cleanup(func() { initGatewayFunc = orig })
 
 	t.Run("successful status check", func(t *testing.T) {
 		mg := &mockGateway{}
@@ -80,7 +79,7 @@ func TestStatusIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := status(context.Background(), nil)
+		err := status(t.Context(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.statusCalled, "status should be called")
 	})
@@ -91,7 +90,7 @@ func TestStatusIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := status(context.Background(), nil)
+		err := status(t.Context(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Checking gateway status...")
 	})
@@ -99,9 +98,9 @@ func TestStatusIntegration_FullFlow(t *testing.T) {
 
 //nolint:dupl
 func TestSignalIntegration_FullFlow(t *testing.T) {
-	original := initGatewayFunc
+	orig := initGatewayFunc
 
-	defer func() { initGatewayFunc = original }()
+	t.Cleanup(func() { initGatewayFunc = orig })
 
 	t.Run("successful signal retrieval", func(t *testing.T) {
 		mg := &mockGateway{}
@@ -109,7 +108,7 @@ func TestSignalIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := signalCmd(context.Background(), nil)
+		err := signalCmd(t.Context(), nil)
 		require.NoError(t, err)
 		assert.True(t, mg.signalCalled, "signal should be called")
 	})
@@ -120,20 +119,20 @@ func TestSignalIntegration_FullFlow(t *testing.T) {
 			return mg, nil
 		}
 
-		err := signalCmd(context.Background(), nil)
+		err := signalCmd(t.Context(), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Fetching signal information...")
 	})
 }
 
 func TestRebootIntegration_FullFlow(t *testing.T) {
-	original := initGatewayFunc
-	originalConfig := appConfig
+	origInit := initGatewayFunc
+	origConfig := appConfig
 
-	defer func() {
-		initGatewayFunc = original
-		appConfig = originalConfig
-	}()
+	t.Cleanup(func() {
+		initGatewayFunc = origInit
+		appConfig = origConfig
+	})
 
 	t.Run("successful reboot with auto-confirm", func(t *testing.T) {
 		appConfig = &Config{DryRun: false}
@@ -143,7 +142,7 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 		}
 		cmd := newRebootCmd(false)
 
-		err := reboot(context.Background(), cmd)
+		err := reboot(t.Context(), cmd)
 		require.NoError(t, err)
 		assert.True(t, mg.rebootCalled, "reboot should be called")
 	})
@@ -156,7 +155,7 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 		}
 		cmd := newRebootCmd(true)
 
-		err := reboot(context.Background(), cmd)
+		err := reboot(t.Context(), cmd)
 		require.NoError(t, err)
 		assert.False(t, mg.rebootCalled, "reboot should not be called in dry-run mode")
 	})
@@ -169,7 +168,7 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 		}
 		cmd := newRebootCmd(false)
 
-		err := reboot(context.Background(), cmd)
+		err := reboot(t.Context(), cmd)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Reboot failed: test failure")
 	})
