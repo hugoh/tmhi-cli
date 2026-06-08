@@ -26,25 +26,25 @@ type mockGateway struct {
 	signalErr     error
 }
 
-func (m *mockGateway) Login() error {
+func (m *mockGateway) Login(context.Context) error {
 	m.loginCalled = true
 
 	return m.loginErr
 }
 
-func (m *mockGateway) Reboot() error {
+func (m *mockGateway) Reboot(context.Context) error {
 	m.rebootCalled = true
 
 	return m.rebootErr
 }
 
-func (m *mockGateway) Request(_, _ string) (*tmhi.InfoResult, error) {
+func (m *mockGateway) Request(context.Context, string, string) (*tmhi.InfoResult, error) {
 	m.requestCalled = true
 
 	return &tmhi.InfoResult{}, nil
 }
 
-func (m *mockGateway) Info() (*tmhi.InfoResult, error) {
+func (m *mockGateway) Info(context.Context) (*tmhi.InfoResult, error) {
 	m.infoCalled = true
 	if m.infoErr != nil {
 		return nil, m.infoErr
@@ -53,7 +53,7 @@ func (m *mockGateway) Info() (*tmhi.InfoResult, error) {
 	return &tmhi.InfoResult{}, nil
 }
 
-func (m *mockGateway) Status() (*tmhi.StatusResult, error) {
+func (m *mockGateway) Status(context.Context) (*tmhi.StatusResult, error) {
 	m.statusCalled = true
 	if m.statusErr != nil {
 		return nil, m.statusErr
@@ -62,7 +62,7 @@ func (m *mockGateway) Status() (*tmhi.StatusResult, error) {
 	return &tmhi.StatusResult{WebInterfaceUp: true}, nil
 }
 
-func (m *mockGateway) Signal() (*tmhi.SignalResult, error) {
+func (m *mockGateway) Signal(context.Context) (*tmhi.SignalResult, error) {
 	m.signalCalled = true
 	if m.signalErr != nil {
 		return nil, m.signalErr

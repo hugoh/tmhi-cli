@@ -41,9 +41,14 @@ func TestFetchWithFeedback_Success(t *testing.T) {
 	pterm.DisableStyling()
 	t.Cleanup(pterm.EnableStyling)
 
-	result, err := fetchWithFeedback("Test operation", func() (string, error) {
-		return "success", nil
-	}, nil)
+	result, err := fetchWithFeedback(
+		t.Context(),
+		"Test operation",
+		func(context.Context) (string, error) {
+			return "success", nil
+		},
+		nil,
+	)
 
 	require.NoError(t, err)
 	assert.Equal(t, "success", result)
@@ -54,9 +59,14 @@ func TestFetchWithFeedback_Error(t *testing.T) {
 	t.Cleanup(pterm.EnableStyling)
 
 	expectedErr := errors.New("operation failed")
-	result, err := fetchWithFeedback("Test operation", func() (string, error) {
-		return "partial", expectedErr
-	}, nil)
+	result, err := fetchWithFeedback(
+		t.Context(),
+		"Test operation",
+		func(context.Context) (string, error) {
+			return "partial", expectedErr
+		},
+		nil,
+	)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Test operation")
@@ -72,9 +82,14 @@ func TestFetchWithFeedback_WithPointerType(t *testing.T) {
 		Value int
 	}
 
-	result, err := fetchWithFeedback("Test operation", func() (*testResult, error) {
-		return &testResult{Value: 42}, nil
-	}, nil)
+	result, err := fetchWithFeedback(
+		t.Context(),
+		"Test operation",
+		func(context.Context) (*testResult, error) {
+			return &testResult{Value: 42}, nil
+		},
+		nil,
+	)
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -86,7 +101,7 @@ func TestFetchWithFeedback_ErrorWrapping(t *testing.T) {
 	t.Cleanup(pterm.EnableStyling)
 
 	originalErr := errors.New("underlying error")
-	_, err := fetchWithFeedback("Doing something", func() (int, error) {
+	_, err := fetchWithFeedback(t.Context(), "Doing something", func(context.Context) (int, error) {
 		return 0, originalErr
 	}, nil)
 
@@ -102,12 +117,17 @@ func TestFetchWithFeedback_WithDisplay(t *testing.T) {
 
 	var displayedResult string
 
-	result, err := fetchWithFeedback("Test operation", func() (string, error) {
-		return "test value", nil
-	}, func(r string) {
-		displayCalled = true
-		displayedResult = r
-	})
+	result, err := fetchWithFeedback(
+		t.Context(),
+		"Test operation",
+		func(context.Context) (string, error) {
+			return "test value", nil
+		},
+		func(r string) {
+			displayCalled = true
+			displayedResult = r
+		},
+	)
 
 	require.NoError(t, err)
 	assert.Equal(t, "test value", result)
@@ -124,9 +144,14 @@ func TestFetchWithFeedback_SpinnerError(t *testing.T) {
 		return nil, errors.New("spinner failed")
 	}
 
-	_, err := fetchWithFeedback("Test operation", func() (string, error) {
-		return "should not reach", nil
-	}, nil)
+	_, err := fetchWithFeedback(
+		t.Context(),
+		"Test operation",
+		func(context.Context) (string, error) {
+			return "should not reach", nil
+		},
+		nil,
+	)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "spinner failed")
