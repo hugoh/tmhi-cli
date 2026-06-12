@@ -158,14 +158,14 @@ func login(ctx context.Context, _ *cli.Command) error {
 }
 
 func req(ctx context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
-	if err != nil {
-		return err
-	}
-
 	const requiredArgsCount = 2
 	if cmd.NArg() != requiredArgsCount {
 		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
+	}
+
+	gateway, err := initGatewayFunc(appConfig)
+	if err != nil {
+		return err
 	}
 
 	method := cmd.Args().Get(0)
