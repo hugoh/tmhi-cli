@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	tmhi "github.com/hugoh/tmhi-gateway"
+	tmhi "github.com/hugoh/tmhi-gateway/v2"
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	"github.com/urfave/cli/v3"

@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	signal "github.com/hugoh/cellular-signal/v2"
-	tmhi "github.com/hugoh/tmhi-gateway"
+	tmhi "github.com/hugoh/tmhi-gateway/v2"
 	"github.com/pterm/pterm"
 )
 

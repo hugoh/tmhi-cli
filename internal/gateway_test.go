@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	tmhi "github.com/hugoh/tmhi-gateway"
+	tmhi "github.com/hugoh/tmhi-gateway/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
