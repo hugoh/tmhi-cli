@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	tmhi "github.com/hugoh/tmhi-gateway"
@@ -314,7 +316,10 @@ func Cmd(version string) error {
 		},
 	}
 
-	err := app.Run(context.Background(), os.Args)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	err := app.Run(ctx, os.Args)
 	if err != nil {
 		if _, ok := errors.AsType[*displayedError](err); !ok {
 			pterm.Error.Println(err)
