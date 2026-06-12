@@ -27,6 +27,6 @@ func getGateway(cfg *Config) (tmhi.Gateway, error) {
 	case NOK5G21:
 		return tmhi.NewNokiaGateway(gwConfig), nil
 	default:
-		return nil, fmt.Errorf("%w: \"%s\"", errUnknownGateway, cfg.Model)
+		return nil, fmt.Errorf("%w: %q", errUnknownGateway, cfg.Model)
 	}
 }
