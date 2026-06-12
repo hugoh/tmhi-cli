@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	signal "github.com/hugoh/cellular-signal"
+	signal "github.com/hugoh/cellular-signal/v2"
 	tmhi "github.com/hugoh/tmhi-gateway"
 	"github.com/pterm/pterm"
 )
@@ -65,7 +65,7 @@ func displaySignalMetrics(header string, metrics *tmhi.SignalData, extras ...[]s
 	ratedMetrics := []struct {
 		name  string
 		value int
-		rate  func(int) signal.Rating
+		rate  func(float64) signal.Rating
 	}{
 		{"RSRP", metrics.RSRP, rater.RateRSRP},
 		{"RSRQ", metrics.RSRQ, rater.RateRSRQ},
@@ -73,11 +73,11 @@ func displaySignalMetrics(header string, metrics *tmhi.SignalData, extras ...[]s
 		{"SINR", metrics.SINR, rater.RateSINR},
 	}
 	for _, metric := range ratedMetrics {
-		rating := metric.rate(metric.value)
+		rating := metric.rate(float64(metric.value))
 		tableData = append(tableData, []string{
 			metric.name,
-			rater.FormatWith("%v %u", rating),
-			rater.FormatWith("%q %s", rating),
+			rating.Format("%v %u"),
+			rating.Format("%q %s"),
 		})
 	}
 

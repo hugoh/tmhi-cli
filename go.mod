@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
-	github.com/hugoh/cellular-signal v1.1.3
+	github.com/hugoh/cellular-signal/v2 v2.0.0
 	github.com/hugoh/tmhi-gateway v1.3.0
 	github.com/pterm/pterm v0.12.83
 	github.com/stretchr/testify v1.11.1
