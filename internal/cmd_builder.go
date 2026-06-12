@@ -174,7 +174,7 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			Name:        ConfigTimeout,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigTimeout, configSource)),
 			Value:       DefaultTimeout,
-			Usage:       "request timeout in seconds",
+			Usage:       "request timeout (e.g. 5s, 1m)",
 			Destination: &appConfig.Timeout,
 		},
 	}
