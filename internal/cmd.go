@@ -242,6 +242,12 @@ func reboot(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
+	if appConfig.DryRun {
+		pterm.Info.Println("Dry run - would send reboot request")
+
+		return nil
+	}
+
 	if !cmd.Bool(ConfigAutoConfirm) {
 		confirmed, confirmErr := confirmDialog(
 			"Are you sure you want to reboot the gateway?",
@@ -256,12 +262,6 @@ func reboot(ctx context.Context, cmd *cli.Command) error {
 
 			return nil
 		}
-	}
-
-	if appConfig.DryRun {
-		pterm.Info.Println("Dry run - would send reboot request")
-
-		return nil
 	}
 
 	return runWithFeedback(
