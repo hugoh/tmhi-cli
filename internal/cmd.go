@@ -45,7 +45,7 @@ func (w *spinnerWrapper) Fail(message ...any) {
 }
 
 func (w *spinnerWrapper) Success(message ...any) {
-	if message == nil {
+	if len(message) == 0 {
 		_ = w.spinnerPrinter.WithRemoveWhenDone().Stop()
 
 		return
