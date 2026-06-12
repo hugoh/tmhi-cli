@@ -174,7 +174,7 @@ func req(ctx context.Context, cmd *cli.Command) error {
 
 	if loginFirst {
 		if err := gateway.Login(ctx); err != nil {
-			return fmt.Errorf("request failed: %w", err)
+			return fmt.Errorf("login failed: %w", err)
 		}
 	}
 
