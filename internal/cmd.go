@@ -3,6 +3,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -110,7 +111,7 @@ func fetchWithFeedback[T any](
 	if opErr != nil {
 		spinnerInstance.Fail(fmt.Sprintf("%s: %v", message, opErr))
 
-		return result, fmt.Errorf("%s: %w", message, opErr)
+		return result, displayed(fmt.Errorf("%s: %w", message, opErr))
 	}
 
 	spinnerInstance.Success(successMessage...)
@@ -128,14 +129,7 @@ func initGateway(cfg *Config) (tmhi.Gateway, error) {
 		return nil, err
 	}
 
-	gateway, err := getGateway(cfg)
-	if err != nil {
-		pterm.Error.Println("could not instantiate gateway:", err)
-
-		return nil, err
-	}
-
-	return gateway, nil
+	return getGateway(cfg)
 }
 
 func login(ctx context.Context, _ *cli.Command) error {
@@ -317,9 +311,16 @@ func Cmd(version string) error {
 		OnUsageError: func(_ context.Context, cmd *cli.Command, err error, _ bool) error {
 			_, _ = fmt.Fprintf(cmd.ErrWriter, "error: %v\n", err)
 
-			return err
+			return displayed(err)
 		},
 	}
 
-	return app.Run(context.Background(), os.Args) //nolint:wrapcheck
+	err := app.Run(context.Background(), os.Args)
+	if err != nil {
+		if _, ok := errors.AsType[*displayedError](err); !ok {
+			pterm.Error.Println(err)
+		}
+	}
+
+	return err //nolint:wrapcheck
 }

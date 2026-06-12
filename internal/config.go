@@ -57,7 +57,7 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		return fmt.Errorf("%w: %w", ErrInvalidConfig, err)
+		return displayed(fmt.Errorf("%w: %w", ErrInvalidConfig, err))
 	}
 
 	return nil
