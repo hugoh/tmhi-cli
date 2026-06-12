@@ -38,11 +38,9 @@ func TestCaptureOutput_MultipleWrites(t *testing.T) {
 }
 
 func TestFetchWithFeedback_Success(t *testing.T) {
-	pterm.DisableStyling()
-	t.Cleanup(pterm.EnableStyling)
-
 	result, err := fetchWithFeedback(
 		t.Context(),
+		newTestApp(nil).newSpinner,
 		"Test operation",
 		func(context.Context) (string, error) {
 			return "success", nil
@@ -55,12 +53,10 @@ func TestFetchWithFeedback_Success(t *testing.T) {
 }
 
 func TestFetchWithFeedback_Error(t *testing.T) {
-	pterm.DisableStyling()
-	t.Cleanup(pterm.EnableStyling)
-
 	expectedErr := errors.New("operation failed")
 	result, err := fetchWithFeedback(
 		t.Context(),
+		newTestApp(nil).newSpinner,
 		"Test operation",
 		func(context.Context) (string, error) {
 			return "partial", expectedErr
@@ -75,15 +71,13 @@ func TestFetchWithFeedback_Error(t *testing.T) {
 }
 
 func TestFetchWithFeedback_WithPointerType(t *testing.T) {
-	pterm.DisableStyling()
-	t.Cleanup(pterm.EnableStyling)
-
 	type testResult struct {
 		Value int
 	}
 
 	result, err := fetchWithFeedback(
 		t.Context(),
+		newTestApp(nil).newSpinner,
 		"Test operation",
 		func(context.Context) (*testResult, error) {
 			return &testResult{Value: 42}, nil
@@ -97,28 +91,29 @@ func TestFetchWithFeedback_WithPointerType(t *testing.T) {
 }
 
 func TestFetchWithFeedback_ErrorWrapping(t *testing.T) {
-	pterm.DisableStyling()
-	t.Cleanup(pterm.EnableStyling)
-
 	originalErr := errors.New("underlying error")
-	_, err := fetchWithFeedback(t.Context(), "Doing something", func(context.Context) (int, error) {
-		return 0, originalErr
-	}, nil)
+	_, err := fetchWithFeedback(
+		t.Context(),
+		newTestApp(nil).newSpinner,
+		"Doing something",
+		func(context.Context) (int, error) {
+			return 0, originalErr
+		},
+		nil,
+	)
 
 	require.Error(t, err)
 	assert.ErrorIs(t, err, originalErr, "error should wrap the original error")
 }
 
 func TestFetchWithFeedback_WithDisplay(t *testing.T) {
-	pterm.DisableStyling()
-	t.Cleanup(pterm.EnableStyling)
-
 	displayCalled := false
 
 	var displayedResult string
 
 	result, err := fetchWithFeedback(
 		t.Context(),
+		newTestApp(nil).newSpinner,
 		"Test operation",
 		func(context.Context) (string, error) {
 			return "test value", nil
@@ -136,16 +131,14 @@ func TestFetchWithFeedback_WithDisplay(t *testing.T) {
 }
 
 func TestFetchWithFeedback_SpinnerError(t *testing.T) {
-	origSpinner := spinnerFunc
-
-	t.Cleanup(func() { spinnerFunc = origSpinner })
-
-	spinnerFunc = func(_ string) (spinner, error) {
+	a := newTestApp(nil)
+	a.newSpinner = func(_ string) (spinner, error) {
 		return nil, errors.New("spinner failed")
 	}
 
 	_, err := fetchWithFeedback(
 		t.Context(),
+		a.newSpinner,
 		"Test operation",
 		func(context.Context) (string, error) {
 			return "should not reach", nil
@@ -173,13 +166,13 @@ func TestDefaultConfigPath_HomeError(t *testing.T) {
 func TestBuildFlags(t *testing.T) {
 	var configFile string
 
-	flags := cmdFlags(&configFile, nil)
+	flags := newApp().flags(&configFile, nil)
 
 	require.Len(t, flags, 11)
 }
 
 func TestBuildCommands(t *testing.T) {
-	commands := cmdCommands()
+	commands := newApp().commands()
 
 	require.Len(t, commands, 6)
 	require.Equal(t, "login", commands[0].Name)
@@ -229,6 +222,37 @@ func TestCmd_Version(t *testing.T) {
 		testVersion,
 		out,
 	)
+}
+
+func TestCmd_UsageError(t *testing.T) {
+	oldArgs := os.Args
+	os.Args = []string{appName, "--invalid-flag"}
+
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	var err error
+
+	out := capturer.CaptureOutput(func() {
+		err = Cmd("test-version")
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, out, "error:")
+}
+
+func TestCmd_InvalidConfig(t *testing.T) {
+	oldArgs := os.Args
+	os.Args = []string{appName, "login"}
+
+	t.Cleanup(func() { os.Args = oldArgs })
+
+	var err error
+
+	capturer.CaptureOutput(func() {
+		err = Cmd("test-version")
+	})
+
+	require.ErrorIs(t, err, ErrInvalidConfig)
 }
 
 func TestSetupColor_Never(t *testing.T) {
@@ -320,7 +344,7 @@ func TestDebugFlagAction(t *testing.T) {
 
 	var configFile string
 
-	flags := cmdFlags(&configFile, nil)
+	flags := newApp().flags(&configFile, nil)
 
 	var debugFlag *cli.BoolFlag
 
@@ -346,7 +370,7 @@ func TestQuietFlagAction(t *testing.T) {
 
 	var configFile string
 
-	flags := cmdFlags(&configFile, nil)
+	flags := newApp().flags(&configFile, nil)
 
 	var quietFlag *cli.BoolFlag
 
@@ -369,25 +393,22 @@ func TestQuietFlagAction(t *testing.T) {
 func TestGatewayInitErrors(t *testing.T) {
 	tests := []struct {
 		name    string
-		handler func(context.Context, *cli.Command) error
+		handler func(*app) cli.ActionFunc
 	}{
-		{cmdLogin, login},
-		{cmdStatus, status},
-		{cmdSignal, signalCmd},
-		{"reboot", reboot},
+		{cmdLogin, func(a *app) cli.ActionFunc { return a.login }},
+		{cmdStatus, func(a *app) cli.ActionFunc { return a.status }},
+		{cmdSignal, func(a *app) cli.ActionFunc { return a.signal }},
+		{"reboot", func(a *app) cli.ActionFunc { return a.reboot }},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			origInit := initGatewayFunc
-
-			t.Cleanup(func() { initGatewayFunc = origInit })
-
-			initGatewayFunc = func(_ *Config) (tmhi.Gateway, error) {
+			a := newTestApp(nil)
+			a.initGateway = func(_ *Config) (tmhi.Gateway, error) {
 				return nil, errors.New("gateway init failed")
 			}
 
-			err := tt.handler(t.Context(), nil)
+			err := tt.handler(a)(t.Context(), nil)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "gateway init failed")
 		})

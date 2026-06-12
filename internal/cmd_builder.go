@@ -11,11 +11,6 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// Global config instance for flag destinations.
-//
-//nolint:gochecknoglobals
-var appConfig = &Config{}
-
 // Configuration flag names.
 const (
 	ConfigAutoConfirm string = "yes"
@@ -34,12 +29,12 @@ const (
 	ConfigUsername    string = ConfigLogin + "username"
 )
 
-func cmdCommands() []*cli.Command {
+func (a *app) commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   cmdLogin,
 			Usage:  "Verify that the credentials can log the tool in",
-			Action: login,
+			Action: a.login,
 		},
 		{
 			Name:  "reboot",
@@ -52,22 +47,22 @@ func cmdCommands() []*cli.Command {
 					Usage:   "skip confirmation prompts",
 				},
 			},
-			Action: reboot,
+			Action: a.reboot,
 		},
 		{
 			Name:   "info",
 			Usage:  "Get gateway information",
-			Action: info,
+			Action: a.info,
 		},
 		{
 			Name:   cmdStatus,
 			Usage:  "Check gateway status",
-			Action: status,
+			Action: a.status,
 		},
 		{
 			Name:   cmdSignal,
 			Usage:  "Display signal strength information",
-			Action: signalCmd,
+			Action: a.signal,
 		},
 		{
 			Name:      cmdReq,
@@ -81,12 +76,12 @@ func cmdCommands() []*cli.Command {
 					Usage:   "login before making request",
 				},
 			},
-			Action: req,
+			Action: a.req,
 		},
 	}
 }
 
-func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //nolint:funlen
+func (a *app) flags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //nolint:funlen
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        ConfigConfig,
@@ -101,7 +96,7 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			Aliases:     []string{"d"},
 			Value:       false,
 			Usage:       "display debugging output in the console",
-			Destination: &appConfig.Debug,
+			Destination: &a.config.Debug,
 			Action: func(_ context.Context, _ *cli.Command, v bool) error {
 				if v {
 					pterm.EnableDebugMessages()
@@ -134,48 +129,48 @@ func cmdFlags(configFile *string, configSource altsrc.Sourcer) []cli.Flag { //no
 			Aliases:     []string{"D"},
 			Value:       false,
 			Usage:       "do not perform any change to the gateway",
-			Destination: &appConfig.DryRun,
+			Destination: &a.config.DryRun,
 		},
 		&cli.StringFlag{
 			Name:        ConfigModel,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigModel, configSource)),
 			Usage:       fmt.Sprintf("gateway model: options: %s, %s", ARCADYAN, NOK5G21),
-			Destination: &appConfig.Model,
+			Destination: &a.config.Model,
 		},
 		&cli.StringFlag{
 			Name:        ConfigIP,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigIP, configSource)),
 			Value:       defaultIP,
 			Usage:       "gateway IP",
-			Destination: &appConfig.IP,
+			Destination: &a.config.IP,
 		},
 		&cli.StringFlag{
 			Name:        ConfigUsername,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigUsername, configSource)),
 			Value:       defaultUser,
 			Usage:       "admin username",
-			Destination: &appConfig.Username,
+			Destination: &a.config.Username,
 		},
 		&cli.StringFlag{
 			Name:        ConfigPassword,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigPassword, configSource)),
 			Required:    false,
 			Usage:       "admin password",
-			Destination: &appConfig.Password,
+			Destination: &a.config.Password,
 		},
 		&cli.IntFlag{
 			Name:        ConfigRetries,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigRetries, configSource)),
 			Value:       0,
 			Usage:       "number of retries",
-			Destination: &appConfig.Retries,
+			Destination: &a.config.Retries,
 		},
 		&cli.DurationFlag{
 			Name:        ConfigTimeout,
 			Sources:     cli.NewValueSourceChain(toml.TOML(ConfigTimeout, configSource)),
 			Value:       DefaultTimeout,
 			Usage:       "request timeout (e.g. 5s, 1m)",
-			Destination: &appConfig.Timeout,
+			Destination: &a.config.Timeout,
 		},
 	}
 }
