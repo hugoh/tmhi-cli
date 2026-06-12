@@ -16,7 +16,7 @@ func displayStatusResult(result *tmhi.StatusResult) {
 	case result.Error != nil:
 		pterm.Error.Println("Web interface down: " + result.Error.Error())
 	default:
-		pterm.Error.Println(fmt.Sprintf("Web interface down: status %d", result.StatusCode))
+		pterm.Error.Printfln("Web interface down: status %d", result.StatusCode)
 	}
 
 	if result.Registration != "" {
@@ -60,31 +60,28 @@ func displaySignalMetrics(header string, metrics *tmhi.SignalData, extras ...[]s
 		tableData = append(tableData, append(extra, ""))
 	}
 
-	tableData = append(
-		tableData,
-		[]string{"Bands", fmt.Sprintf("%v", metrics.Bands), ""},
-		[]string{
-			"RSRP",
-			formatMetricValue(rater, metrics.RSRP, rater.RateRSRP),
-			formatMetricQuality(rater.RateRSRP(metrics.RSRP)),
-		},
-		[]string{
-			"RSRQ",
-			formatMetricValue(rater, metrics.RSRQ, rater.RateRSRQ),
-			formatMetricQuality(rater.RateRSRQ(metrics.RSRQ)),
-		},
-		[]string{
-			"RSSI",
-			formatMetricValue(rater, metrics.RSSI, rater.RateRSSI),
-			formatMetricQuality(rater.RateRSSI(metrics.RSSI)),
-		},
-		[]string{
-			"SINR",
-			formatMetricValue(rater, metrics.SINR, rater.RateSINR),
-			formatMetricQuality(rater.RateSINR(metrics.SINR)),
-		},
-		[]string{"CID", strconv.Itoa(metrics.CID), ""},
-	)
+	tableData = append(tableData, []string{"Bands", fmt.Sprintf("%v", metrics.Bands), ""})
+
+	ratedMetrics := []struct {
+		name  string
+		value int
+		rate  func(int) signal.Rating
+	}{
+		{"RSRP", metrics.RSRP, rater.RateRSRP},
+		{"RSRQ", metrics.RSRQ, rater.RateRSRQ},
+		{"RSSI", metrics.RSSI, rater.RateRSSI},
+		{"SINR", metrics.SINR, rater.RateSINR},
+	}
+	for _, metric := range ratedMetrics {
+		rating := metric.rate(metric.value)
+		tableData = append(tableData, []string{
+			metric.name,
+			rater.FormatWith("%v %u", rating),
+			rater.FormatWith("%q %s", rating),
+		})
+	}
+
+	tableData = append(tableData, []string{"CID", strconv.Itoa(metrics.CID), ""})
 
 	if err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Render(); err != nil {
 		pterm.Error.Println("Failed to render table:", err)
@@ -105,16 +102,6 @@ func displayGenericSignalInfo(result *tmhi.SignalResult) {
 	if err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Render(); err != nil {
 		pterm.Error.Println("Failed to render table:", err)
 	}
-}
-
-func formatMetricValue(rater *signal.Rater, value int, rateFunc func(int) signal.Rating) string {
-	return rater.FormatWith("%v %u", rateFunc(value))
-}
-
-func formatMetricQuality(rating signal.Rating) string {
-	rater := signal.NewRater()
-
-	return rater.FormatWith("%q %s", rating)
 }
 
 func displayInfoResult(result *tmhi.InfoResult) {
