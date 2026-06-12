@@ -170,6 +170,6 @@ func TestRebootIntegration_FullFlow(t *testing.T) {
 
 		err := reboot(t.Context(), cmd)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Reboot failed: test failure")
+		assert.Contains(t, err.Error(), "Rebooting gateway...: test failure")
 	})
 }

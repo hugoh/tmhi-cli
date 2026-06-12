@@ -261,14 +261,7 @@ func reboot(ctx context.Context, cmd *cli.Command) error {
 	return runWithFeedback(
 		ctx,
 		"Rebooting gateway...",
-		func(ctx context.Context) error {
-			rebootErr := gateway.Reboot(ctx)
-			if rebootErr != nil {
-				return fmt.Errorf("Reboot failed: %w", rebootErr)
-			}
-
-			return nil
-		},
+		gateway.Reboot,
 		"Reboot command sent successfully",
 	)
 }
