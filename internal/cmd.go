@@ -123,6 +123,27 @@ func fetchWithFeedback[T any](
 	return result, nil
 }
 
+// runWithFeedback runs an operation with a spinner when there is no result
+// to display.
+func runWithFeedback(
+	ctx context.Context,
+	message string,
+	run func(context.Context) error,
+	successMessage ...any,
+) error {
+	_, err := fetchWithFeedback(
+		ctx,
+		message,
+		func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, run(ctx)
+		},
+		nil,
+		successMessage...,
+	)
+
+	return err
+}
+
 //nolint:ireturn
 func initGateway(cfg *Config) (tmhi.Gateway, error) {
 	if err := cfg.Validate(); err != nil {
@@ -138,17 +159,7 @@ func login(ctx context.Context, _ *cli.Command) error {
 		return err
 	}
 
-	_, err = fetchWithFeedback(
-		ctx,
-		"Logging in...",
-		func(ctx context.Context) (*tmhi.StatusResult, error) {
-			return nil, gateway.Login(ctx)
-		},
-		nil,
-		"Successfully logged in",
-	)
-
-	return err
+	return runWithFeedback(ctx, "Logging in...", gateway.Login, "Successfully logged in")
 }
 
 func req(ctx context.Context, cmd *cli.Command) error {
@@ -253,22 +264,19 @@ func reboot(ctx context.Context, cmd *cli.Command) error {
 		return nil
 	}
 
-	_, ret := fetchWithFeedback(
+	return runWithFeedback(
 		ctx,
 		"Rebooting gateway...",
-		func(ctx context.Context) (*tmhi.SignalResult, error) {
+		func(ctx context.Context) error {
 			rebootErr := gateway.Reboot(ctx)
 			if rebootErr != nil {
-				return nil, fmt.Errorf("Reboot failed: %w", rebootErr)
+				return fmt.Errorf("Reboot failed: %w", rebootErr)
 			}
 
-			return nil, nil //nolint:nilnil // no error to report
+			return nil
 		},
-		nil,
 		"Reboot command sent successfully",
 	)
-
-	return ret
 }
 
 func defaultConfigPath() string {
