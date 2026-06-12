@@ -41,7 +41,7 @@ var fieldToFlag = map[string]string{
 // Validate validates the Config struct and returns formatted errors.
 func (c *Config) Validate() error {
 	err := validation.ValidateStruct(c,
-		validation.Field(&c.Model, validation.Required, validation.In("ARCADYAN", "NOK5G21")),
+		validation.Field(&c.Model, validation.Required, validation.In(ARCADYAN, NOK5G21)),
 		validation.Field(&c.IP, validation.Required, is.Host),
 		validation.Field(&c.Username, validation.Required),
 		validation.Field(&c.Timeout, validation.Required, validation.Min(1*time.Second)),
