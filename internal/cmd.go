@@ -3,11 +3,15 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
 	"time"
 
-	tmhi "github.com/hugoh/tmhi-gateway"
+	tmhi "github.com/hugoh/tmhi-gateway/v2"
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	"github.com/urfave/cli/v3"
@@ -17,19 +21,45 @@ import (
 type spinner interface {
 	Fail(message ...any)
 	Success(message ...any)
-	Stop() error
 }
 
-// spinnerFunc creates a new spinner. Overridable for testing.
-//
-//nolint:gochecknoglobals
-var spinnerFunc = func(message string) (spinner, error) {
+// app carries the configuration and the dependencies command actions use,
+// so tests can swap them without mutating package state.
+type app struct {
+	config      *Config
+	initGateway func(*Config) (tmhi.Gateway, error)
+	newSpinner  func(message string) (spinner, error)
+	confirm     func(msg string, defaultVal bool) (bool, error)
+}
+
+func newApp() *app {
+	return &app{
+		config:      &Config{},
+		initGateway: initGateway,
+		newSpinner:  newPtermSpinner,
+		confirm:     ptermConfirm,
+	}
+}
+
+//nolint:ireturn
+func newPtermSpinner(message string) (spinner, error) {
 	sp, err := pterm.DefaultSpinner.Start(message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start spinner: %w", err)
 	}
 
 	return &spinnerWrapper{spinnerPrinter: sp}, nil
+}
+
+func ptermConfirm(msg string, defaultVal bool) (bool, error) {
+	confirmed, err := pterm.DefaultInteractiveConfirm.
+		WithDefaultValue(defaultVal).
+		Show(msg)
+	if err != nil {
+		return false, fmt.Errorf("confirmation failed: %w", err)
+	}
+
+	return confirmed, nil
 }
 
 // spinnerWrapper wraps pterm.SpinnerPrinter to implement the spinner interface.
@@ -42,30 +72,13 @@ func (w *spinnerWrapper) Fail(message ...any) {
 }
 
 func (w *spinnerWrapper) Success(message ...any) {
-	if message == nil {
+	if len(message) == 0 {
 		_ = w.spinnerPrinter.WithRemoveWhenDone().Stop()
 
 		return
 	}
 
 	w.spinnerPrinter.Success(message...)
-}
-
-func (w *spinnerWrapper) Stop() error {
-	if err := w.spinnerPrinter.Stop(); err != nil {
-		return fmt.Errorf("failed to stop spinner: %w", err)
-	}
-
-	return nil
-}
-
-// confirmDialog prompts the user for confirmation. Overridable for testing.
-//
-//nolint:gochecknoglobals
-var confirmDialog = func(msg string, defaultVal bool) (bool, error) {
-	return pterm.DefaultInteractiveConfirm.
-		WithDefaultValue(defaultVal).
-		Show(msg)
 }
 
 // Gateway model constants.
@@ -86,9 +99,6 @@ const (
 	testRegState = "registered"
 )
 
-//nolint:gochecknoglobals
-var initGatewayFunc = initGateway
-
 // fetchWithFeedback runs an operation with a spinner, handling success/failure.
 // It starts a spinner with the given message, executes the fetch function,
 // displays the result using the display function, and properly stops the spinner.
@@ -96,21 +106,24 @@ var initGatewayFunc = initGateway
 //nolint:ireturn
 func fetchWithFeedback[T any](
 	ctx context.Context,
+	newSpinner func(string) (spinner, error),
 	message string,
 	fetch func(context.Context) (T, error),
 	display func(T),
 	successMessage ...any,
 ) (T, error) {
-	spinnerInstance, err := spinnerFunc(message)
+	spinnerInstance, err := newSpinner(message)
 	if err != nil {
-		return *new(T), err
+		var zero T
+
+		return zero, err
 	}
 
 	result, opErr := fetch(ctx)
 	if opErr != nil {
 		spinnerInstance.Fail(fmt.Sprintf("%s: %v", message, opErr))
 
-		return result, fmt.Errorf("%s: %w", message, opErr)
+		return result, displayed(fmt.Errorf("%s: %w", message, opErr))
 	}
 
 	spinnerInstance.Success(successMessage...)
@@ -122,50 +135,62 @@ func fetchWithFeedback[T any](
 	return result, nil
 }
 
-//nolint:ireturn
-func initGateway(_ *Config) (tmhi.Gateway, error) {
-	if err := appConfig.Validate(); err != nil {
-		return nil, err
-	}
-
-	gateway, err := getGateway(appConfig)
-	if err != nil {
-		pterm.Error.Println("could not instantiate gateway:", err)
-
-		return nil, err
-	}
-
-	return gateway, nil
-}
-
-func login(ctx context.Context, _ *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
-	if err != nil {
-		return err
-	}
-
-	_, err = fetchWithFeedback(
+// runWithFeedback runs an operation with a spinner when there is no result
+// to display.
+func runWithFeedback(
+	ctx context.Context,
+	newSpinner func(string) (spinner, error),
+	message string,
+	run func(context.Context) error,
+	successMessage ...any,
+) error {
+	_, err := fetchWithFeedback(
 		ctx,
-		"Logging in...",
-		func(ctx context.Context) (*tmhi.StatusResult, error) {
-			return nil, gateway.Login(ctx)
+		newSpinner,
+		message,
+		func(ctx context.Context) (struct{}, error) {
+			return struct{}{}, run(ctx)
 		},
 		nil,
-		"Successfully logged in",
+		successMessage...,
 	)
 
 	return err
 }
 
-func req(ctx context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
+//nolint:ireturn
+func initGateway(cfg *Config) (tmhi.Gateway, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
+	return getGateway(cfg)
+}
+
+func (a *app) login(ctx context.Context, _ *cli.Command) error {
+	gateway, err := a.initGateway(a.config)
 	if err != nil {
 		return err
 	}
 
+	return runWithFeedback(
+		ctx,
+		a.newSpinner,
+		"Logging in...",
+		gateway.Login,
+		"Successfully logged in",
+	)
+}
+
+func (a *app) req(ctx context.Context, cmd *cli.Command) error {
 	const requiredArgsCount = 2
 	if cmd.NArg() != requiredArgsCount {
 		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
+	}
+
+	gateway, err := a.initGateway(a.config)
+	if err != nil {
+		return err
 	}
 
 	method := cmd.Args().Get(0)
@@ -174,7 +199,7 @@ func req(ctx context.Context, cmd *cli.Command) error {
 
 	if loginFirst {
 		if err := gateway.Login(ctx); err != nil {
-			return fmt.Errorf("request failed: %w", err)
+			return fmt.Errorf("login failed: %w", err)
 		}
 	}
 
@@ -188,25 +213,32 @@ func req(ctx context.Context, cmd *cli.Command) error {
 	return nil
 }
 
-func info(ctx context.Context, _ *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
-	if err != nil {
-		return err
-	}
-
-	_, err = fetchWithFeedback(ctx, "Fetching gateway info...", gateway.Info, displayInfoResult)
-
-	return err
-}
-
-func status(ctx context.Context, _ *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
+func (a *app) info(ctx context.Context, _ *cli.Command) error {
+	gateway, err := a.initGateway(a.config)
 	if err != nil {
 		return err
 	}
 
 	_, err = fetchWithFeedback(
 		ctx,
+		a.newSpinner,
+		"Fetching gateway info...",
+		gateway.Info,
+		displayInfoResult,
+	)
+
+	return err
+}
+
+func (a *app) status(ctx context.Context, _ *cli.Command) error {
+	gateway, err := a.initGateway(a.config)
+	if err != nil {
+		return err
+	}
+
+	_, err = fetchWithFeedback(
+		ctx,
+		a.newSpinner,
 		"Checking gateway status...",
 		gateway.Status,
 		displayStatusResult,
@@ -215,14 +247,15 @@ func status(ctx context.Context, _ *cli.Command) error {
 	return err
 }
 
-func signalCmd(ctx context.Context, _ *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
+func (a *app) signal(ctx context.Context, _ *cli.Command) error {
+	gateway, err := a.initGateway(a.config)
 	if err != nil {
 		return err
 	}
 
 	_, err = fetchWithFeedback(
 		ctx,
+		a.newSpinner,
 		"Fetching signal information...",
 		gateway.Signal,
 		displaySignalResult,
@@ -231,19 +264,25 @@ func signalCmd(ctx context.Context, _ *cli.Command) error {
 	return err
 }
 
-func reboot(ctx context.Context, cmd *cli.Command) error {
-	gateway, err := initGatewayFunc(appConfig)
+func (a *app) reboot(ctx context.Context, cmd *cli.Command) error {
+	gateway, err := a.initGateway(a.config)
 	if err != nil {
 		return err
 	}
 
+	if a.config.DryRun {
+		pterm.Info.Println("Dry run - would send reboot request")
+
+		return nil
+	}
+
 	if !cmd.Bool(ConfigAutoConfirm) {
-		confirmed, confirmErr := confirmDialog(
+		confirmed, confirmErr := a.confirm(
 			"Are you sure you want to reboot the gateway?",
 			false,
 		)
 		if confirmErr != nil {
-			return fmt.Errorf("confirmation failed: %w", confirmErr)
+			return confirmErr
 		}
 
 		if !confirmed {
@@ -253,37 +292,24 @@ func reboot(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	if appConfig.DryRun {
-		pterm.Info.Println("Dry run - would send reboot request")
-
-		return nil
-	}
-
-	_, ret := fetchWithFeedback(
+	return runWithFeedback(
 		ctx,
+		a.newSpinner,
 		"Rebooting gateway...",
-		func(ctx context.Context) (*tmhi.SignalResult, error) {
-			rebootErr := gateway.Reboot(ctx)
-			if rebootErr != nil {
-				return nil, fmt.Errorf("Reboot failed: %w", rebootErr)
-			}
-
-			return nil, nil //nolint:nilnil // no error to report
-		},
-		nil,
+		gateway.Reboot,
 		"Reboot command sent successfully",
 	)
-
-	return ret
 }
 
 func defaultConfigPath() string {
+	const configFileName = ".tmhi-cli.toml"
+
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ".tmhi-cli.toml"
+		return configFileName
 	}
 
-	return home + "/.tmhi-cli.toml"
+	return filepath.Join(home, configFileName)
 }
 
 func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) {
@@ -306,20 +332,31 @@ func Cmd(version string) error {
 	var configFile string
 
 	configSource := altsrc.NewStringPtrSourcer(&configFile)
+	cliApp := newApp()
 
-	app := &cli.Command{
+	root := &cli.Command{
 		Name:     appName,
 		Usage:    "Utility to interact with T-Mobile Home Internet gateway",
 		Version:  version,
-		Flags:    cmdFlags(&configFile, configSource),
-		Commands: cmdCommands(),
+		Flags:    cliApp.flags(&configFile, configSource),
+		Commands: cliApp.commands(),
 		Before:   setupColor,
 		OnUsageError: func(_ context.Context, cmd *cli.Command, err error, _ bool) error {
 			_, _ = fmt.Fprintf(cmd.ErrWriter, "error: %v\n", err)
 
-			return err
+			return displayed(err)
 		},
 	}
 
-	return app.Run(context.Background(), os.Args) //nolint:wrapcheck
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	err := root.Run(ctx, os.Args)
+	if err != nil {
+		if _, ok := errors.AsType[*displayedError](err); !ok {
+			pterm.Error.Println(err)
+		}
+	}
+
+	return err //nolint:wrapcheck
 }

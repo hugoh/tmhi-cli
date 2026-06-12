@@ -1,11 +1,12 @@
 package internal
 
 import (
+	"bytes"
 	"errors"
+	"os"
 	"testing"
 
-	signal "github.com/hugoh/cellular-signal"
-	tmhi "github.com/hugoh/tmhi-gateway"
+	tmhi "github.com/hugoh/tmhi-gateway/v2"
 	"github.com/pterm/pterm"
 	"github.com/stretchr/testify/assert"
 )
@@ -151,14 +152,26 @@ func TestDisplayInfoResult(t *testing.T) {
 	assert.NotPanics(t, func() { displayInfoResult(result) })
 }
 
-func TestFormatMetricValue(t *testing.T) {
-	rater := signal.NewRater()
-	result := formatMetricValue(rater, -100, rater.RateRSRP)
-	assert.Contains(t, result, "-100")
-}
+func TestDisplaySignalMetrics_Output(t *testing.T) {
+	pterm.DisableStyling()
+	t.Cleanup(pterm.EnableStyling)
 
-func TestFormatMetricQuality(t *testing.T) {
-	rating := signal.NewRater().RateRSRP(-100)
-	result := formatMetricQuality(rating)
-	assert.NotEmpty(t, result)
+	var buf bytes.Buffer
+
+	pterm.SetDefaultOutput(&buf)
+	t.Cleanup(func() { pterm.SetDefaultOutput(os.Stdout) })
+
+	displaySignalMetrics("Test Signal", &tmhi.SignalData{
+		Bars:  3,
+		Bands: []string{"n41"},
+		RSRP:  -100,
+		RSRQ:  -10,
+		RSSI:  -70,
+		SINR:  10,
+		CID:   42,
+	})
+
+	for _, want := range []string{"RSRP", "RSRQ", "RSSI", "SINR", "-100", "42"} {
+		assert.Contains(t, buf.String(), want)
+	}
 }

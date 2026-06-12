@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	tmhi "github.com/hugoh/tmhi-gateway"
+	tmhi "github.com/hugoh/tmhi-gateway/v2"
 )
 
 var errUnknownGateway = errors.New("unknown gateway")
@@ -12,7 +12,7 @@ var errUnknownGateway = errors.New("unknown gateway")
 //nolint:ireturn
 func getGateway(cfg *Config) (tmhi.Gateway, error) {
 	gwConfig := &tmhi.GatewayConfig{
-		IP:       cfg.IP,
+		Host:     cfg.IP,
 		Username: cfg.Username,
 		Password: cfg.Password,
 		Timeout:  cfg.Timeout,
@@ -27,6 +27,6 @@ func getGateway(cfg *Config) (tmhi.Gateway, error) {
 	case NOK5G21:
 		return tmhi.NewNokiaGateway(gwConfig), nil
 	default:
-		return nil, fmt.Errorf("%w: \"%s\"", errUnknownGateway, cfg.Model)
+		return nil, fmt.Errorf("%w: %q", errUnknownGateway, cfg.Model)
 	}
 }
