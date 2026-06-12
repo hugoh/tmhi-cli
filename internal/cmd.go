@@ -98,7 +98,9 @@ func fetchWithFeedback[T any](
 ) (T, error) {
 	spinnerInstance, err := spinnerFunc(message)
 	if err != nil {
-		return *new(T), err
+		var zero T
+
+		return zero, err
 	}
 
 	result, opErr := fetch(ctx)
