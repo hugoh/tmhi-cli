@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -273,12 +274,14 @@ func reboot(ctx context.Context, cmd *cli.Command) error {
 }
 
 func defaultConfigPath() string {
+	const configFileName = ".tmhi-cli.toml"
+
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ".tmhi-cli.toml"
+		return configFileName
 	}
 
-	return home + "/.tmhi-cli.toml"
+	return filepath.Join(home, configFileName)
 }
 
 func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) {
