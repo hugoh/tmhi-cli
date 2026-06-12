@@ -18,7 +18,6 @@ import (
 type spinner interface {
 	Fail(message ...any)
 	Success(message ...any)
-	Stop() error
 }
 
 // spinnerFunc creates a new spinner. Overridable for testing.
@@ -50,14 +49,6 @@ func (w *spinnerWrapper) Success(message ...any) {
 	}
 
 	w.spinnerPrinter.Success(message...)
-}
-
-func (w *spinnerWrapper) Stop() error {
-	if err := w.spinnerPrinter.Stop(); err != nil {
-		return fmt.Errorf("failed to stop spinner: %w", err)
-	}
-
-	return nil
 }
 
 // confirmDialog prompts the user for confirmation. Overridable for testing.

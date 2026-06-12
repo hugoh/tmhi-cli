@@ -11,10 +11,6 @@ func (*mockSpinner) Fail(_ ...any) {}
 
 func (*mockSpinner) Success(_ ...any) {}
 
-func (*mockSpinner) Stop() error {
-	return nil
-}
-
 func TestMain(m *testing.M) {
 	// Use a temp directory as HOME to avoid reading user's config
 	dir, err := os.MkdirTemp("", "tmhi-test-home")
