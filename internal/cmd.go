@@ -123,12 +123,12 @@ func fetchWithFeedback[T any](
 }
 
 //nolint:ireturn
-func initGateway(_ *Config) (tmhi.Gateway, error) {
-	if err := appConfig.Validate(); err != nil {
+func initGateway(cfg *Config) (tmhi.Gateway, error) {
+	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
 
-	gateway, err := getGateway(appConfig)
+	gateway, err := getGateway(cfg)
 	if err != nil {
 		pterm.Error.Println("could not instantiate gateway:", err)
 
