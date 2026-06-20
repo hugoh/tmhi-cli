@@ -27,6 +27,7 @@ type mockGateway struct {
 	rebootCalled  bool
 	rebootErr     error
 	requestCalled bool
+	requestErr    error
 	signalCalled  bool
 	signalErr     error
 }
@@ -45,6 +46,9 @@ func (m *mockGateway) Reboot(context.Context) error {
 
 func (m *mockGateway) Request(context.Context, string, string) (*tmhi.InfoResult, error) {
 	m.requestCalled = true
+	if m.requestErr != nil {
+		return nil, m.requestErr
+	}
 
 	return &tmhi.InfoResult{}, nil
 }
@@ -332,6 +336,25 @@ func TestReq_Command(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "login failed")
 		assert.False(t, mg.requestCalled, "request should not be performed")
+	})
+
+	t.Run("request failure returns error", func(t *testing.T) {
+		mg := &mockGateway{requestErr: errors.New("gateway timeout")}
+		a := newTestApp(mg)
+
+		reqCmd := &cli.Command{
+			Name:   cmdReq,
+			Action: a.req,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{Name: cmdLogin, Value: false},
+			},
+		}
+
+		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "request failed")
+		assert.Contains(t, err.Error(), "gateway timeout")
+		assert.True(t, mg.requestCalled, "request should have been attempted")
 	})
 }
 
