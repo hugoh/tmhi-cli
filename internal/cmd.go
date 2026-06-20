@@ -99,8 +99,6 @@ const (
 	cmdReq       = "req"
 	cmdStatus    = "status"
 	cmdSignal    = "signal"
-	testAPN      = "test.apn"
-	testRegState = "registered"
 )
 
 // fetchWithFeedback runs an operation with a spinner, handling success/failure.
