@@ -91,14 +91,14 @@ const (
 	NOK5G21        string        = "NOK5G21"
 	DefaultTimeout time.Duration = 5 * time.Second
 
-	appName      = "tmhi-cli"
-	defaultIP    = "192.168.12.1"
-	defaultUser  = "admin"
-	autoValue    = "auto"
-	cmdLogin     = "login"
-	cmdReq       = "req"
-	cmdStatus    = "status"
-	cmdSignal    = "signal"
+	appName     = "tmhi-cli"
+	defaultIP   = "192.168.12.1"
+	defaultUser = "admin"
+	autoValue   = "auto"
+	cmdLogin    = "login"
+	cmdReq      = "req"
+	cmdStatus   = "status"
+	cmdSignal   = "signal"
 )
 
 // fetchWithFeedback runs an operation with a spinner, handling success/failure.
