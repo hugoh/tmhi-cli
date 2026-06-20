@@ -127,7 +127,9 @@ func fetchWithFeedback[T any](
 	if opErr != nil {
 		spinnerInstance.Fail(fmt.Sprintf("%s: %v", message, opErr))
 
-		return result, displayed(fmt.Errorf("%s: %w", message, opErr))
+		var zero T
+
+		return zero, displayed(fmt.Errorf("%s: %w", message, opErr))
 	}
 
 	spinnerInstance.Success(successMessage...)

@@ -67,7 +67,7 @@ func TestFetchWithFeedback_Error(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Test operation")
 	assert.Contains(t, err.Error(), "operation failed")
-	assert.Equal(t, "partial", result)
+	assert.Empty(t, result, "error path must return zero value, not partial result")
 }
 
 func TestFetchWithFeedback_WithPointerType(t *testing.T) {
