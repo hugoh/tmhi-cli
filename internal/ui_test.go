@@ -11,6 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	testAPN      = "test.apn"
+	testRegState = "registered"
+)
+
 func TestDisplayStatusResult(t *testing.T) {
 	pterm.DisableStyling()
 	t.Cleanup(pterm.EnableStyling)

@@ -40,7 +40,9 @@ func displaySignalResult(result *tmhi.SignalResult) {
 		displaySignalMetrics("5G Signal", &result.FiveG.SignalData, extras...)
 	}
 
-	displayGenericSignalInfo(result)
+	if result.Generic != (tmhi.GenericSignalInfo{}) {
+		displayGenericSignalInfo(result)
+	}
 }
 
 const signalMetricsCount = 6
@@ -76,8 +78,8 @@ func displaySignalMetrics(header string, metrics *tmhi.SignalData, extras ...[]s
 		rating := metric.rate(float64(metric.value))
 		tableData = append(tableData, []string{
 			metric.name,
-			rating.Format("%v %u"),
-			rating.Format("%q %s"),
+			strconv.FormatFloat(rating.Value, 'f', -1, 64) + " " + rating.Metric.Unit(),
+			rating.Quality.String() + " " + rating.Quality.Stars(),
 		})
 	}
 

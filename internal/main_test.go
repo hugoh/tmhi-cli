@@ -39,8 +39,8 @@ func TestMain(m *testing.M) {
 
 	_ = os.Setenv("HOME", origHome) // skipcq: GO-W1032
 
-	if err := os.RemoveAll(dir); err != nil {
-		os.Exit(1)
+	if err := os.RemoveAll(dir); err != nil && code == 0 {
+		code = 1
 	}
 
 	os.Exit(code)

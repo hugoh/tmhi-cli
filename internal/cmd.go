@@ -73,7 +73,11 @@ func (w *spinnerWrapper) Fail(message ...any) {
 
 func (w *spinnerWrapper) Success(message ...any) {
 	if len(message) == 0 {
-		_ = w.spinnerPrinter.WithRemoveWhenDone().Stop()
+		// WithRemoveWhenDone has a value receiver and returns a new copy, so
+		// calling Stop() on that copy never reaches the goroutine's IsActive.
+		// Set the field on the original pointer and stop it directly.
+		w.spinnerPrinter.RemoveWhenDone = true
+		_ = w.spinnerPrinter.Stop()
 
 		return
 	}
@@ -87,16 +91,14 @@ const (
 	NOK5G21        string        = "NOK5G21"
 	DefaultTimeout time.Duration = 5 * time.Second
 
-	appName      = "tmhi-cli"
-	defaultIP    = "192.168.12.1"
-	defaultUser  = "admin"
-	autoValue    = "auto"
-	cmdLogin     = "login"
-	cmdReq       = "req"
-	cmdStatus    = "status"
-	cmdSignal    = "signal"
-	testAPN      = "test.apn"
-	testRegState = "registered"
+	appName     = "tmhi-cli"
+	defaultIP   = "192.168.12.1"
+	defaultUser = "admin"
+	autoValue   = "auto"
+	cmdLogin    = "login"
+	cmdReq      = "req"
+	cmdStatus   = "status"
+	cmdSignal   = "signal"
 )
 
 // fetchWithFeedback runs an operation with a spinner, handling success/failure.
@@ -123,7 +125,9 @@ func fetchWithFeedback[T any](
 	if opErr != nil {
 		spinnerInstance.Fail(fmt.Sprintf("%s: %v", message, opErr))
 
-		return result, displayed(fmt.Errorf("%s: %w", message, opErr))
+		var zero T
+
+		return zero, displayed(fmt.Errorf("%s: %w", message, opErr))
 	}
 
 	spinnerInstance.Success(successMessage...)
