@@ -408,7 +408,7 @@ func TestGatewayInitErrors(t *testing.T) {
 				return nil, errors.New("gateway init failed")
 			}
 
-			err := tt.handler(a)(t.Context(), nil)
+			err := tt.handler(a)(t.Context(), &cli.Command{})
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "gateway init failed")
 		})
