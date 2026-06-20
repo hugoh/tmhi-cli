@@ -44,6 +44,7 @@ func (c *Config) Validate() error {
 		validation.Field(&c.Model, validation.Required, validation.In(ARCADYAN, NOK5G21)),
 		validation.Field(&c.IP, validation.Required, is.Host),
 		validation.Field(&c.Username, validation.Required),
+		validation.Field(&c.Password, validation.Required),
 		validation.Field(&c.Timeout, validation.Required, validation.Min(1*time.Second)),
 		validation.Field(&c.Retries, validation.Min(0)),
 	)
