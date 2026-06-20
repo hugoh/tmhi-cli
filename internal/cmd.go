@@ -73,7 +73,11 @@ func (w *spinnerWrapper) Fail(message ...any) {
 
 func (w *spinnerWrapper) Success(message ...any) {
 	if len(message) == 0 {
-		_ = w.spinnerPrinter.WithRemoveWhenDone().Stop()
+		// WithRemoveWhenDone has a value receiver and returns a new copy, so
+		// calling Stop() on that copy never reaches the goroutine's IsActive.
+		// Set the field on the original pointer and stop it directly.
+		w.spinnerPrinter.RemoveWhenDone = true
+		_ = w.spinnerPrinter.Stop()
 
 		return
 	}
