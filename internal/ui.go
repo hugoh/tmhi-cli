@@ -40,7 +40,9 @@ func displaySignalResult(result *tmhi.SignalResult) {
 		displaySignalMetrics("5G Signal", &result.FiveG.SignalData, extras...)
 	}
 
-	displayGenericSignalInfo(result)
+	if result.Generic != (tmhi.GenericSignalInfo{}) {
+		displayGenericSignalInfo(result)
+	}
 }
 
 const signalMetricsCount = 6
