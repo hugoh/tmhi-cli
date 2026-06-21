@@ -12,6 +12,7 @@ import (
 	"time"
 
 	tmhi "github.com/hugoh/tmhi-gateway/v2"
+	"github.com/muesli/termenv"
 	"github.com/pterm/pterm"
 	altsrc "github.com/urfave/cli-altsrc/v3"
 	"github.com/urfave/cli/v3"
@@ -316,13 +317,41 @@ func defaultConfigPath() string {
 	return filepath.Join(home, configFileName)
 }
 
+func applyLightBgTheme() {
+	// FgLight* colors are near-white and invisible on light backgrounds.
+	pterm.ThemeDefault.PrimaryStyle = pterm.Style{pterm.FgCyan}
+	pterm.ThemeDefault.SecondaryStyle = pterm.Style{pterm.FgMagenta}
+	pterm.ThemeDefault.InfoMessageStyle = pterm.Style{pterm.FgCyan}
+	pterm.ThemeDefault.WarningMessageStyle = pterm.Style{pterm.FgYellow, pterm.Bold}
+	pterm.ThemeDefault.ErrorMessageStyle = pterm.Style{pterm.FgRed}
+	pterm.ThemeDefault.FatalMessageStyle = pterm.Style{pterm.FgRed}
+	pterm.ThemeDefault.SpinnerStyle = pterm.Style{pterm.FgCyan}
+	pterm.ThemeDefault.SpinnerTextStyle = pterm.Style{pterm.FgDefault}
+	pterm.ThemeDefault.TableHeaderStyle = pterm.Style{pterm.FgCyan, pterm.Bold}
+	pterm.ThemeDefault.ProgressbarTitleStyle = pterm.Style{pterm.FgCyan}
+	pterm.ThemeDefault.HeatmapHeaderStyle = pterm.Style{pterm.FgCyan}
+	pterm.ThemeDefault.BarLabelStyle = pterm.Style{pterm.FgCyan}
+	// For elements with their own background, FgLightWhite is readable
+	// regardless of the terminal background — the badge/header bg provides contrast.
+	pterm.ThemeDefault.InfoPrefixStyle = pterm.Style{pterm.FgLightWhite, pterm.BgCyan}
+	pterm.ThemeDefault.SuccessPrefixStyle = pterm.Style{pterm.FgLightWhite, pterm.BgGreen}
+	pterm.ThemeDefault.WarningPrefixStyle = pterm.Style{pterm.FgLightWhite, pterm.BgYellow}
+	pterm.ThemeDefault.ErrorPrefixStyle = pterm.Style{pterm.FgLightWhite, pterm.BgRed}
+	pterm.ThemeDefault.FatalPrefixStyle = pterm.Style{pterm.FgLightWhite, pterm.BgRed}
+}
+
 func setupColor(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	colorValue := cmd.String(ConfigColor)
 	switch colorValue {
 	case "always":
+		if !termenv.HasDarkBackground() {
+			applyLightBgTheme()
+		}
 	case autoValue:
 		if !term.IsTerminal(int(os.Stdout.Fd())) {
 			pterm.DisableStyling()
+		} else if !termenv.HasDarkBackground() {
+			applyLightBgTheme()
 		}
 	case "never":
 		pterm.DisableStyling()
