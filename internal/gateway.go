@@ -10,15 +10,16 @@ import (
 var errUnknownGateway = errors.New("unknown gateway")
 
 //nolint:ireturn
-func getGateway(cfg *Config) (tmhi.Gateway, error) {
+func getGateway(cfg *Config, userAgent string) (tmhi.Gateway, error) {
 	gwConfig := &tmhi.GatewayConfig{
-		Host:     cfg.IP,
-		Username: cfg.Username,
-		Password: cfg.Password,
-		Timeout:  cfg.Timeout,
-		Retries:  cfg.Retries,
-		DryRun:   cfg.DryRun,
-		Debug:    cfg.Debug,
+		Host:      cfg.IP,
+		Username:  cfg.Username,
+		Password:  cfg.Password,
+		Timeout:   cfg.Timeout,
+		Retries:   cfg.Retries,
+		UserAgent: userAgent,
+		DryRun:    cfg.DryRun,
+		Debug:     cfg.Debug,
 	}
 
 	switch cfg.Model {

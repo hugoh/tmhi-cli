@@ -25,7 +25,7 @@ func testGatewayCreation(t *testing.T, model string, expectedType any) {
 		IP:       testIP,
 		Timeout:  DefaultTimeout,
 	}
-	g, err := getGateway(cfg)
+	g, err := getGateway(cfg, "")
 	require.NoError(t, err)
 	assert.NotNil(t, g)
 	assert.IsType(t, expectedType, g)
@@ -48,7 +48,7 @@ func TestGateway(t *testing.T) {
 			IP:       testIP,
 			Timeout:  DefaultTimeout,
 		}
-		g, err := getGateway(cfg)
+		g, err := getGateway(cfg, "")
 		require.Error(t, err)
 		assert.Nil(t, g)
 	})
@@ -61,7 +61,7 @@ func TestGateway(t *testing.T) {
 			IP:       testIP,
 			Timeout:  DefaultTimeout,
 		}
-		g, err := getGateway(cfg)
+		g, err := getGateway(cfg, "")
 		require.NoError(t, err)
 		assert.NotNil(t, g)
 	})
@@ -77,7 +77,7 @@ func TestGateway(t *testing.T) {
 			Debug:    true,
 			DryRun:   true,
 		}
-		g, err := getGateway(cfg)
+		g, err := getGateway(cfg, "")
 		require.NoError(t, err)
 		assert.NotNil(t, g)
 		assert.IsType(t, &tmhi.NokiaGateway{}, g)

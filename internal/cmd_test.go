@@ -324,6 +324,12 @@ func TestSetupColor_AutoDefault(t *testing.T) {
 	)
 }
 
+func TestApplyLightBgTheme(t *testing.T) {
+	applyLightBgTheme()
+
+	assert.Equal(t, pterm.Style{pterm.FgDefault}, pterm.ThemeDefault.SpinnerTextStyle)
+}
+
 func TestOnUsageError(t *testing.T) {
 	app := &cli.Command{
 		Name: appName,
