@@ -169,7 +169,7 @@ func initGateway(cfg *Config) (tmhi.Gateway, error) {
 		return nil, err
 	}
 
-	return getGateway(cfg)
+	return getGateway(cfg, "")
 }
 
 func (a *app) login(ctx context.Context, _ *cli.Command) error {
@@ -366,6 +366,13 @@ func Cmd(version string) error {
 
 	configSource := altsrc.NewStringPtrSourcer(&configFile)
 	cliApp := newApp()
+	cliApp.initGateway = func(cfg *Config) (tmhi.Gateway, error) {
+		if err := cfg.Validate(); err != nil {
+			return nil, err
+		}
+
+		return getGateway(cfg, appName+"/"+version)
+	}
 
 	root := &cli.Command{
 		Name:     appName,
