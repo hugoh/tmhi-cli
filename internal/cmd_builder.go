@@ -50,7 +50,7 @@ func (a *app) commands() []*cli.Command {
 			Action: a.reboot,
 		},
 		{
-			Name:   "info",
+			Name:   cmdInfo,
 			Usage:  "Get gateway information",
 			Action: a.info,
 		},

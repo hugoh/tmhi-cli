@@ -126,7 +126,7 @@ func TestHandlerSuccessAndFailure(t *testing.T) {
 			errChecks: []string{"login failed"},
 		},
 		{
-			name:    "info",
+			name:    cmdInfo,
 			handler: func(a *app) cli.ActionFunc { return a.info },
 			called:  func(mg *mockGateway) bool { return mg.infoCalled },
 			setupFail: func(mg *mockGateway) {

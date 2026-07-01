@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	tmhi "github.com/hugoh/tmhi-gateway/v2"
+	"go.uber.org/goleak"
 )
 
 type mockSpinner struct{}
@@ -37,23 +38,29 @@ func newTestApp(gw tmhi.Gateway) *app {
 	return a
 }
 
+// ptermConfirmLeakIgnores returns goleak options for ptermConfirm's
+// background goroutine (internal/cmd.go), which keeps reading stdin after
+// ctx cancellation since pterm offers no way to interrupt it; it blocks
+// forever on the underlying keyboard listener rather than exiting, so it's
+// ignored here rather than treated as a leak.
+func ptermConfirmLeakIgnores() []goleak.Option {
+	return []goleak.Option{
+		goleak.IgnoreTopFunction("atomicgo.dev/keyboard.Listen"),
+		goleak.IgnoreTopFunction("atomicgo.dev/keyboard.Listen.func3"),
+	}
+}
+
+// TestMain sets a temp HOME for the test binary (avoiding the real user's
+// config) and wires up goleak so any goroutine leak fails the run.
+// goleak.VerifyTestMain exits the process itself, so the temp dir is best
+// left for the OS to reclaim rather than cleaned up via defer here.
 func TestMain(m *testing.M) {
-	// Use a temp directory as HOME to avoid reading user's config
 	dir, err := os.MkdirTemp("", "tmhi-test-home")
 	if err != nil {
 		os.Exit(1)
 	}
 
-	origHome := os.Getenv("HOME")
 	_ = os.Setenv("HOME", dir) // skipcq: GO-W1032
 
-	code := m.Run()
-
-	_ = os.Setenv("HOME", origHome) // skipcq: GO-W1032
-
-	if err := os.RemoveAll(dir); err != nil && code == 0 {
-		code = 1
-	}
-
-	os.Exit(code)
+	goleak.VerifyTestMain(m, ptermConfirmLeakIgnores()...)
 }

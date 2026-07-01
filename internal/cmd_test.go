@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 	capturer "github.com/zenizh/go-capturer"
+	"go.uber.org/goleak"
 )
 
 func TestCaptureOutput(t *testing.T) {
@@ -157,6 +158,10 @@ func TestPtermConfirm_ContextCancelled(t *testing.T) {
 	confirmed, err := ptermConfirm(ctx, "irrelevant", false)
 	require.ErrorIs(t, err, context.Canceled)
 	assert.False(t, confirmed)
+
+	// The background goroutine keeps blocking on the keyboard listener (see
+	// ptermConfirmLeakIgnores); assert nothing beyond that known leak remains.
+	assert.NoError(t, goleak.Find(ptermConfirmLeakIgnores()...))
 }
 
 func TestDefaultConfigPath(t *testing.T) {
@@ -186,7 +191,7 @@ func TestBuildCommands(t *testing.T) {
 	require.Len(t, commands, 6)
 	require.Equal(t, "login", commands[0].Name)
 	require.Equal(t, "reboot", commands[1].Name)
-	require.Equal(t, "info", commands[2].Name)
+	require.Equal(t, cmdInfo, commands[2].Name)
 	require.Equal(t, "status", commands[3].Name)
 	require.Equal(t, "signal", commands[4].Name)
 	require.Equal(t, "req", commands[5].Name)
@@ -405,12 +410,43 @@ func TestQuietFlagAction(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestInitGateway_Success(t *testing.T) {
+	cfg := &Config{
+		Model:    ARCADYAN,
+		IP:       "192.168.12.1",
+		Username: "admin",
+		Password: "password",
+		Timeout:  DefaultTimeout,
+		Retries:  1,
+	}
+
+	gateway, err := initGateway(cfg)
+	require.NoError(t, err)
+	assert.NotNil(t, gateway)
+}
+
+func TestInitGateway_ValidationError(t *testing.T) {
+	gateway, err := initGateway(&Config{})
+	require.Error(t, err)
+	assert.Nil(t, gateway)
+}
+
+func TestInfo_FetchError(t *testing.T) {
+	expectedErr := errors.New("info fetch failed")
+	a := newTestApp(&mockGateway{infoErr: expectedErr})
+
+	err := a.info(t.Context(), &cli.Command{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "info fetch failed")
+}
+
 func TestGatewayInitErrors(t *testing.T) {
 	tests := []struct {
 		name    string
 		handler func(*app) cli.ActionFunc
 	}{
 		{cmdLogin, func(a *app) cli.ActionFunc { return a.login }},
+		{cmdInfo, func(a *app) cli.ActionFunc { return a.info }},
 		{cmdStatus, func(a *app) cli.ActionFunc { return a.status }},
 		{cmdSignal, func(a *app) cli.ActionFunc { return a.signal }},
 		{"reboot", func(a *app) cli.ActionFunc { return a.reboot }},
