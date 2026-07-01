@@ -217,22 +217,29 @@ func (a *app) req(ctx context.Context, cmd *cli.Command) error {
 		return nil
 	}
 
-	loginFirst := cmd.Bool("login")
-
-	if loginFirst {
-		if err := gateway.Login(ctx); err != nil {
-			return fmt.Errorf("login failed: %w", err)
+	if cmd.Bool("login") {
+		if err := runWithFeedback(
+			ctx,
+			a.newSpinner,
+			"Logging in...",
+			gateway.Login,
+			"Successfully logged in",
+		); err != nil {
+			return err
 		}
 	}
 
-	result, err := gateway.Request(ctx, method, path)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
+	_, err = fetchWithFeedback(
+		ctx,
+		a.newSpinner,
+		fmt.Sprintf("%s %s...", method, path),
+		func(ctx context.Context) (*tmhi.InfoResult, error) {
+			return gateway.Request(ctx, method, path)
+		},
+		displayInfoResult,
+	)
 
-	displayInfoResult(result)
-
-	return nil
+	return err
 }
 
 func (a *app) info(ctx context.Context, _ *cli.Command) error {

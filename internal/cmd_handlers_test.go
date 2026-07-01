@@ -15,6 +15,7 @@ import (
 const (
 	testReqMethod = "GET"
 	testReqPath   = "/test"
+	testReqLogin  = "--login"
 )
 
 type mockGateway struct {
@@ -357,7 +358,7 @@ func TestReq_Command(t *testing.T) {
 			},
 		}
 
-		err := reqCmd.Run(t.Context(), []string{cmdReq, "--login", testReqMethod, testReqPath})
+		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqLogin, testReqMethod, testReqPath})
 		require.NoError(t, err)
 		assert.True(t, mg.loginCalled, "login should be performed first")
 		assert.True(t, mg.requestCalled, "request should be performed")
@@ -375,9 +376,9 @@ func TestReq_Command(t *testing.T) {
 			},
 		}
 
-		err := reqCmd.Run(t.Context(), []string{cmdReq, "--login", testReqMethod, testReqPath})
+		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqLogin, testReqMethod, testReqPath})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "login failed")
+		assert.Contains(t, err.Error(), "bad credentials")
 		assert.False(t, mg.requestCalled, "request should not be performed")
 	})
 
@@ -395,9 +396,62 @@ func TestReq_Command(t *testing.T) {
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "request failed")
 		assert.Contains(t, err.Error(), "gateway timeout")
 		assert.True(t, mg.requestCalled, "request should have been attempted")
+	})
+
+	t.Run("login failure shows spinner feedback", func(t *testing.T) {
+		mg := &mockGateway{loginErr: errors.New("bad credentials")}
+		a := newTestApp(mg)
+
+		var spinners []*trackingSpinner
+
+		a.newSpinner = func(_ string) (spinner, error) {
+			s := &trackingSpinner{}
+			spinners = append(spinners, s)
+
+			return s, nil
+		}
+
+		reqCmd := &cli.Command{
+			Name:   cmdReq,
+			Action: a.req,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{Name: cmdLogin, Value: false},
+			},
+		}
+
+		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqLogin, testReqMethod, testReqPath})
+		require.Error(t, err)
+		require.Len(t, spinners, 1, "only the login spinner should have been created")
+		assert.True(t, spinners[0].failCalled, "login failure should surface spinner feedback")
+	})
+
+	t.Run("request failure shows spinner feedback", func(t *testing.T) {
+		mg := &mockGateway{requestErr: errors.New("gateway timeout")}
+		a := newTestApp(mg)
+
+		var spinners []*trackingSpinner
+
+		a.newSpinner = func(_ string) (spinner, error) {
+			s := &trackingSpinner{}
+			spinners = append(spinners, s)
+
+			return s, nil
+		}
+
+		reqCmd := &cli.Command{
+			Name:   cmdReq,
+			Action: a.req,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{Name: cmdLogin, Value: false},
+			},
+		}
+
+		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
+		require.Error(t, err)
+		require.Len(t, spinners, 1, "only the request spinner should have been created")
+		assert.True(t, spinners[0].failCalled, "request failure should surface spinner feedback")
 	})
 }
 
