@@ -120,6 +120,7 @@ const (
 	autoValue   = "auto"
 	cmdLogin    = "login"
 	cmdReq      = "req"
+	cmdInfo     = "info"
 	cmdStatus   = "status"
 	cmdSignal   = "signal"
 )
