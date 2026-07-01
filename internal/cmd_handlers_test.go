@@ -81,17 +81,29 @@ func (m *mockGateway) Signal(context.Context) (*tmhi.SignalResult, error) {
 	return &tmhi.SignalResult{}, nil
 }
 
-func newRebootCmd(dry bool) *cli.Command {
+func newRebootCmd(dryRun, autoConfirm bool) *cli.Command {
 	return &cli.Command{
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  ConfigDryRun,
-				Value: dry,
+				Value: dryRun,
 			},
 			&cli.BoolFlag{
 				Name:  ConfigAutoConfirm,
-				Value: true,
+				Value: autoConfirm,
 			},
+		},
+	}
+}
+
+// newReqCmd builds the req command as wired by cmd_builder.go, so req tests
+// exercise the same flag/action wiring the real CLI uses.
+func newReqCmd(a *app) *cli.Command {
+	return &cli.Command{
+		Name:   cmdReq,
+		Action: a.req,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: cmdLogin, Value: false},
 		},
 	}
 }
@@ -175,7 +187,7 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
 		a.config = &Config{DryRun: true}
-		cmd := newRebootCmd(true)
+		cmd := newRebootCmd(true, true)
 		err := a.reboot(t.Context(), cmd)
 		require.NoError(t, err)
 		assert.False(t, mg.rebootCalled)
@@ -185,7 +197,7 @@ func TestReboot_DryRunFlagAndFailure(t *testing.T) {
 		mg := &mockGateway{rebootErr: errors.New("reboot boom")}
 		a := newTestApp(mg)
 		a.config = &Config{DryRun: false}
-		cmd := newRebootCmd(false)
+		cmd := newRebootCmd(false, true)
 		err := a.reboot(t.Context(), cmd)
 		require.Error(t, err)
 		assert.True(t, mg.rebootCalled)
@@ -212,12 +224,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 		a.confirm = func(_ context.Context, _ string, _ bool) (bool, error) {
 			return false, errors.New("prompt broken")
 		}
-		cmd := &cli.Command{
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: ConfigDryRun, Value: false},
-				&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
-			},
-		}
+		cmd := newRebootCmd(false, false)
 
 		err := a.reboot(t.Context(), cmd)
 		require.Error(t, err)
@@ -233,12 +240,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 
 			return false, ctx.Err()
 		}
-		cmd := &cli.Command{
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: ConfigDryRun, Value: false},
-				&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
-			},
-		}
+		cmd := newRebootCmd(false, false)
 
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
@@ -252,12 +254,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
 		a.config = &Config{DryRun: false}
-		cmd := &cli.Command{
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: ConfigDryRun, Value: false},
-				&cli.BoolFlag{Name: ConfigAutoConfirm, Value: true},
-			},
-		}
+		cmd := newRebootCmd(false, true)
 
 		err := a.reboot(t.Context(), cmd)
 		require.NoError(t, err)
@@ -274,12 +271,7 @@ func testRebootConfirm(t *testing.T, confirmResult bool, expectCalled bool, msg 
 	a.confirm = func(_ context.Context, _ string, _ bool) (bool, error) {
 		return confirmResult, nil
 	}
-	cmd := &cli.Command{
-		Flags: []cli.Flag{
-			&cli.BoolFlag{Name: ConfigDryRun, Value: false},
-			&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
-		},
-	}
+	cmd := newRebootCmd(false, false)
 
 	err := a.reboot(t.Context(), cmd)
 	require.NoError(t, err)
@@ -291,13 +283,7 @@ func TestReq_Command(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
 
-		reqCmd := &cli.Command{
-			Name:   "req",
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: "login", Value: false},
-			},
-		}
+		reqCmd := newReqCmd(a)
 
 		exited := false
 		origExiter := cli.OsExiter
@@ -318,14 +304,7 @@ func TestReq_Command(t *testing.T) {
 	t.Run("empty method is rejected", func(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, "", testReqPath})
 		require.Error(t, err)
@@ -337,14 +316,7 @@ func TestReq_Command(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
 		a.config = &Config{DryRun: true}
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
 		require.NoError(t, err)
@@ -355,14 +327,7 @@ func TestReq_Command(t *testing.T) {
 	t.Run("performs request", func(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
 		require.NoError(t, err)
@@ -373,14 +338,7 @@ func TestReq_Command(t *testing.T) {
 	t.Run("logs in first with --login", func(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqLogin, testReqMethod, testReqPath})
 		require.NoError(t, err)
@@ -391,14 +349,7 @@ func TestReq_Command(t *testing.T) {
 	t.Run("login failure aborts request", func(t *testing.T) {
 		mg := &mockGateway{loginErr: errors.New("bad credentials")}
 		a := newTestApp(mg)
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqLogin, testReqMethod, testReqPath})
 		require.Error(t, err)
@@ -409,14 +360,7 @@ func TestReq_Command(t *testing.T) {
 	t.Run("request failure returns error", func(t *testing.T) {
 		mg := &mockGateway{requestErr: errors.New("gateway timeout")}
 		a := newTestApp(mg)
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
 		require.Error(t, err)
@@ -428,55 +372,45 @@ func TestReq_Command(t *testing.T) {
 		mg := &mockGateway{loginErr: errors.New("bad credentials")}
 		a := newTestApp(mg)
 
-		var spinners []*trackingSpinner
-
-		a.newSpinner = func(_ string) (spinner, error) {
-			s := &trackingSpinner{}
-			spinners = append(spinners, s)
-
-			return s, nil
-		}
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		factory, spinners := newSpyingSpinnerFactory()
+		a.newSpinner = factory
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqLogin, testReqMethod, testReqPath})
 		require.Error(t, err)
-		require.Len(t, spinners, 1, "only the login spinner should have been created")
-		assert.True(t, spinners[0].failCalled, "login failure should surface spinner feedback")
+		require.Len(t, *spinners, 1, "only the login spinner should have been created")
+		assert.True(t, (*spinners)[0].failCalled, "login failure should surface spinner feedback")
 	})
 
 	t.Run("request failure shows spinner feedback", func(t *testing.T) {
 		mg := &mockGateway{requestErr: errors.New("gateway timeout")}
 		a := newTestApp(mg)
 
-		var spinners []*trackingSpinner
-
-		a.newSpinner = func(_ string) (spinner, error) {
-			s := &trackingSpinner{}
-			spinners = append(spinners, s)
-
-			return s, nil
-		}
-
-		reqCmd := &cli.Command{
-			Name:   cmdReq,
-			Action: a.req,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{Name: cmdLogin, Value: false},
-			},
-		}
+		factory, spinners := newSpyingSpinnerFactory()
+		a.newSpinner = factory
+		reqCmd := newReqCmd(a)
 
 		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
 		require.Error(t, err)
-		require.Len(t, spinners, 1, "only the request spinner should have been created")
-		assert.True(t, spinners[0].failCalled, "request failure should surface spinner feedback")
+		require.Len(t, *spinners, 1, "only the request spinner should have been created")
+		assert.True(t, (*spinners)[0].failCalled, "request failure should surface spinner feedback")
 	})
+}
+
+// newSpyingSpinnerFactory returns a spinner factory and a pointer to the
+// slice of trackingSpinners it creates, so tests can assert on spinner
+// feedback without wiring up their own closures.
+func newSpyingSpinnerFactory() (func(string) (spinner, error), *[]*trackingSpinner) {
+	var spinners []*trackingSpinner
+
+	factory := func(_ string) (spinner, error) {
+		s := &trackingSpinner{}
+		spinners = append(spinners, s)
+
+		return s, nil
+	}
+
+	return factory, &spinners
 }
 
 func TestInitGateway(t *testing.T) {
