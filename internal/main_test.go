@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -30,7 +31,7 @@ func (s *trackingSpinner) Success(_ ...any) { s.successCalled = true }
 func newTestApp(gw tmhi.Gateway) *app {
 	a := newApp()
 	a.newSpinner = func(_ string) (spinner, error) { return &mockSpinner{}, nil }
-	a.confirm = func(_ string, defaultVal bool) (bool, error) { return defaultVal, nil }
+	a.confirm = func(_ context.Context, _ string, defaultVal bool) (bool, error) { return defaultVal, nil }
 	a.initGateway = func(_ *Config) (tmhi.Gateway, error) { return gw, nil }
 
 	return a

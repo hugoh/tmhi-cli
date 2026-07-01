@@ -30,7 +30,7 @@ type app struct {
 	config      *Config
 	initGateway func(*Config) (tmhi.Gateway, error)
 	newSpinner  func(message string) (spinner, error)
-	confirm     func(msg string, defaultVal bool) (bool, error)
+	confirm     func(ctx context.Context, msg string, defaultVal bool) (bool, error)
 }
 
 func newApp() *app {
@@ -52,15 +52,37 @@ func newPtermSpinner(message string) (spinner, error) {
 	return &spinnerWrapper{spinnerPrinter: sp}, nil
 }
 
-func ptermConfirm(msg string, defaultVal bool) (bool, error) {
-	confirmed, err := pterm.DefaultInteractiveConfirm.
-		WithDefaultValue(defaultVal).
-		Show(msg)
-	if err != nil {
-		return false, fmt.Errorf("confirmation failed: %w", err)
+// ptermConfirm shows an interactive confirmation prompt, returning early with
+// ctx.Err() if ctx is cancelled (e.g. by SIGINT) before the user answers.
+// The prompt itself keeps blocking on stdin in the background since pterm
+// offers no way to interrupt it.
+func ptermConfirm(ctx context.Context, msg string, defaultVal bool) (bool, error) {
+	type confirmResult struct {
+		confirmed bool
+		err       error
 	}
 
-	return confirmed, nil
+	resultCh := make(chan confirmResult, 1)
+
+	go func() {
+		confirmed, err := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(defaultVal).
+			Show(msg)
+		if err != nil {
+			resultCh <- confirmResult{err: fmt.Errorf("confirmation failed: %w", err)}
+
+			return
+		}
+
+		resultCh <- confirmResult{confirmed: confirmed}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return false, ctx.Err() //nolint:wrapcheck
+	case r := <-resultCh:
+		return r.confirmed, r.err
+	}
 }
 
 // spinnerWrapper wraps pterm.SpinnerPrinter to implement the spinner interface.
@@ -307,6 +329,7 @@ func (a *app) reboot(ctx context.Context, cmd *cli.Command) error {
 
 	if !cmd.Bool(ConfigAutoConfirm) {
 		confirmed, confirmErr := a.confirm(
+			ctx,
 			"Are you sure you want to reboot the gateway?",
 			false,
 		)

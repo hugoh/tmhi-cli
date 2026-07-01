@@ -209,7 +209,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
 		a.config = &Config{DryRun: false}
-		a.confirm = func(_ string, _ bool) (bool, error) {
+		a.confirm = func(_ context.Context, _ string, _ bool) (bool, error) {
 			return false, errors.New("prompt broken")
 		}
 		cmd := &cli.Command{
@@ -222,6 +222,30 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 		err := a.reboot(t.Context(), cmd)
 		require.Error(t, err)
 		assert.False(t, mg.rebootCalled, "reboot should not proceed on prompt failure")
+	})
+
+	t.Run("cancelled context aborts reboot instead of hanging", func(t *testing.T) {
+		mg := &mockGateway{}
+		a := newTestApp(mg)
+		a.config = &Config{DryRun: false}
+		a.confirm = func(ctx context.Context, _ string, _ bool) (bool, error) {
+			<-ctx.Done()
+
+			return false, ctx.Err()
+		}
+		cmd := &cli.Command{
+			Flags: []cli.Flag{
+				&cli.BoolFlag{Name: ConfigDryRun, Value: false},
+				&cli.BoolFlag{Name: ConfigAutoConfirm, Value: false},
+			},
+		}
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		err := a.reboot(ctx, cmd)
+		require.Error(t, err)
+		assert.False(t, mg.rebootCalled, "reboot should not proceed once the context is cancelled")
 	})
 
 	t.Run("auto confirm skips prompt", func(t *testing.T) {
@@ -247,7 +271,7 @@ func testRebootConfirm(t *testing.T, confirmResult bool, expectCalled bool, msg 
 	mg := &mockGateway{}
 	a := newTestApp(mg)
 	a.config = &Config{DryRun: false}
-	a.confirm = func(_ string, _ bool) (bool, error) {
+	a.confirm = func(_ context.Context, _ string, _ bool) (bool, error) {
 		return confirmResult, nil
 	}
 	cmd := &cli.Command{

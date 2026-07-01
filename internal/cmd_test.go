@@ -150,6 +150,15 @@ func TestFetchWithFeedback_SpinnerError(t *testing.T) {
 	assert.Contains(t, err.Error(), "spinner failed")
 }
 
+func TestPtermConfirm_ContextCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	confirmed, err := ptermConfirm(ctx, "irrelevant", false)
+	require.ErrorIs(t, err, context.Canceled)
+	assert.False(t, confirmed)
+}
+
 func TestDefaultConfigPath(t *testing.T) {
 	path := defaultConfigPath()
 	require.NotEmpty(t, path)
