@@ -102,6 +102,9 @@ const (
 	cmdSignal   = "signal"
 )
 
+// ErrReqArgs is returned when req is not given exactly an HTTP method and a path.
+var ErrReqArgs = errors.New("exactly 2 arguments required (HTTP method and path)")
+
 // fetchWithFeedback runs an operation with a spinner, handling success/failure.
 // It starts a spinner with the given message, executes the fetch function,
 // displays the result using the display function, and properly stops the spinner.
@@ -190,7 +193,7 @@ func (a *app) login(ctx context.Context, _ *cli.Command) error {
 func (a *app) req(ctx context.Context, cmd *cli.Command) error {
 	const requiredArgsCount = 2
 	if cmd.NArg() != requiredArgsCount {
-		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
+		return ErrReqArgs
 	}
 
 	gateway, err := a.initGateway(a.config)

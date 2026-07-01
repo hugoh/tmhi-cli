@@ -274,14 +274,20 @@ func TestReq_Command(t *testing.T) {
 			},
 		}
 
+		exited := false
 		origExiter := cli.OsExiter
-		cli.OsExiter = func(_ int) {}
+		cli.OsExiter = func(_ int) { exited = true }
 
 		t.Cleanup(func() { cli.OsExiter = origExiter })
 
 		err := reqCmd.Run(t.Context(), []string{appName, cmdReq})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "exactly 2 arguments required")
+		assert.False(
+			t,
+			exited,
+			"argument validation should return a normal error, not exit the process",
+		)
 	})
 
 	t.Run("dry-run does not perform the request", func(t *testing.T) {
