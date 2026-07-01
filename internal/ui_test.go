@@ -148,6 +148,20 @@ func TestDisplaySignalResult(t *testing.T) {
 	})
 }
 
+func TestDisplaySignalResult_EmptyResultWarns(t *testing.T) {
+	pterm.DisableStyling()
+	t.Cleanup(pterm.EnableStyling)
+
+	var buf bytes.Buffer
+
+	pterm.SetDefaultOutput(&buf)
+	t.Cleanup(func() { pterm.SetDefaultOutput(os.Stdout) })
+
+	displaySignalResult(&tmhi.SignalResult{})
+
+	assert.Contains(t, buf.String(), "No signal information available")
+}
+
 func TestDisplayInfoResult(t *testing.T) {
 	pterm.DisableStyling()
 	t.Cleanup(pterm.EnableStyling)
