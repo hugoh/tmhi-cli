@@ -290,6 +290,24 @@ func TestReq_Command(t *testing.T) {
 		)
 	})
 
+	t.Run("empty method is rejected", func(t *testing.T) {
+		mg := &mockGateway{}
+		a := newTestApp(mg)
+
+		reqCmd := &cli.Command{
+			Name:   cmdReq,
+			Action: a.req,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{Name: cmdLogin, Value: false},
+			},
+		}
+
+		err := reqCmd.Run(t.Context(), []string{cmdReq, "", testReqPath})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "HTTP method must not be empty")
+		assert.False(t, mg.requestCalled, "request should not be performed with an empty method")
+	})
+
 	t.Run("dry-run does not perform the request", func(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)

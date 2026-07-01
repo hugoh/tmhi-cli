@@ -105,6 +105,9 @@ const (
 // ErrReqArgs is returned when req is not given exactly an HTTP method and a path.
 var ErrReqArgs = errors.New("exactly 2 arguments required (HTTP method and path)")
 
+// ErrReqMethod is returned when req is given an empty HTTP method.
+var ErrReqMethod = errors.New("HTTP method must not be empty")
+
 // fetchWithFeedback runs an operation with a spinner, handling success/failure.
 // It starts a spinner with the given message, executes the fetch function,
 // displays the result using the display function, and properly stops the spinner.
@@ -196,13 +199,17 @@ func (a *app) req(ctx context.Context, cmd *cli.Command) error {
 		return ErrReqArgs
 	}
 
+	method := cmd.Args().Get(0)
+	path := cmd.Args().Get(1)
+
+	if method == "" {
+		return ErrReqMethod
+	}
+
 	gateway, err := a.initGateway(a.config)
 	if err != nil {
 		return err
 	}
-
-	method := cmd.Args().Get(0)
-	path := cmd.Args().Get(1)
 
 	if a.config.DryRun {
 		pterm.Info.Printfln("Dry run - would send %s %s request", method, path)
