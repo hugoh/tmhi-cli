@@ -16,6 +16,22 @@ const (
 	testRegState = "registered"
 )
 
+// captureDefaultOutput disables pterm styling and redirects its default
+// output to a buffer for the duration of the test, returning that buffer.
+func captureDefaultOutput(t *testing.T) *bytes.Buffer {
+	t.Helper()
+
+	pterm.DisableStyling()
+	t.Cleanup(pterm.EnableStyling)
+
+	var buf bytes.Buffer
+
+	pterm.SetDefaultOutput(&buf)
+	t.Cleanup(func() { pterm.SetDefaultOutput(os.Stdout) })
+
+	return &buf
+}
+
 func TestDisplayStatusResult(t *testing.T) {
 	pterm.DisableStyling()
 	t.Cleanup(pterm.EnableStyling)
@@ -148,6 +164,14 @@ func TestDisplaySignalResult(t *testing.T) {
 	})
 }
 
+func TestDisplaySignalResult_EmptyResultWarns(t *testing.T) {
+	buf := captureDefaultOutput(t)
+
+	displaySignalResult(&tmhi.SignalResult{})
+
+	assert.Contains(t, buf.String(), "No signal information available")
+}
+
 func TestDisplayInfoResult(t *testing.T) {
 	pterm.DisableStyling()
 	t.Cleanup(pterm.EnableStyling)
@@ -158,13 +182,7 @@ func TestDisplayInfoResult(t *testing.T) {
 }
 
 func TestDisplaySignalMetrics_Output(t *testing.T) {
-	pterm.DisableStyling()
-	t.Cleanup(pterm.EnableStyling)
-
-	var buf bytes.Buffer
-
-	pterm.SetDefaultOutput(&buf)
-	t.Cleanup(func() { pterm.SetDefaultOutput(os.Stdout) })
+	buf := captureDefaultOutput(t)
 
 	displaySignalMetrics("Test Signal", &tmhi.SignalData{
 		Bars:  3,

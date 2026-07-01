@@ -43,6 +43,10 @@ func displaySignalResult(result *tmhi.SignalResult) {
 	if result.Generic != (tmhi.GenericSignalInfo{}) {
 		displayGenericSignalInfo(result)
 	}
+
+	if result.FourG == nil && result.FiveG == nil && result.Generic == (tmhi.GenericSignalInfo{}) {
+		pterm.Warning.Println("No signal information available")
+	}
 }
 
 const signalMetricsCount = 6

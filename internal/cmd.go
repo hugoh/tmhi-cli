@@ -30,7 +30,7 @@ type app struct {
 	config      *Config
 	initGateway func(*Config) (tmhi.Gateway, error)
 	newSpinner  func(message string) (spinner, error)
-	confirm     func(msg string, defaultVal bool) (bool, error)
+	confirm     func(ctx context.Context, msg string, defaultVal bool) (bool, error)
 }
 
 func newApp() *app {
@@ -52,15 +52,37 @@ func newPtermSpinner(message string) (spinner, error) {
 	return &spinnerWrapper{spinnerPrinter: sp}, nil
 }
 
-func ptermConfirm(msg string, defaultVal bool) (bool, error) {
-	confirmed, err := pterm.DefaultInteractiveConfirm.
-		WithDefaultValue(defaultVal).
-		Show(msg)
-	if err != nil {
-		return false, fmt.Errorf("confirmation failed: %w", err)
+// ptermConfirm shows an interactive confirmation prompt, returning early with
+// ctx.Err() if ctx is cancelled (e.g. by SIGINT) before the user answers.
+// The prompt itself keeps blocking on stdin in the background since pterm
+// offers no way to interrupt it.
+func ptermConfirm(ctx context.Context, msg string, defaultVal bool) (bool, error) {
+	type confirmResult struct {
+		confirmed bool
+		err       error
 	}
 
-	return confirmed, nil
+	resultCh := make(chan confirmResult, 1)
+
+	go func() {
+		confirmed, err := pterm.DefaultInteractiveConfirm.
+			WithDefaultValue(defaultVal).
+			Show(msg)
+		if err != nil {
+			resultCh <- confirmResult{err: fmt.Errorf("confirmation failed: %w", err)}
+
+			return
+		}
+
+		resultCh <- confirmResult{confirmed: confirmed}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return false, ctx.Err() //nolint:wrapcheck
+	case r := <-resultCh:
+		return r.confirmed, r.err
+	}
 }
 
 // spinnerWrapper wraps pterm.SpinnerPrinter to implement the spinner interface.
@@ -101,6 +123,12 @@ const (
 	cmdStatus   = "status"
 	cmdSignal   = "signal"
 )
+
+// ErrReqArgs is returned when req is not given exactly an HTTP method and a path.
+var ErrReqArgs = errors.New("exactly 2 arguments required (HTTP method and path)")
+
+// ErrReqMethod is returned when req is given an empty HTTP method.
+var ErrReqMethod = errors.New("HTTP method must not be empty")
 
 // fetchWithFeedback runs an operation with a spinner, handling success/failure.
 // It starts a spinner with the given message, executes the fetch function,
@@ -190,7 +218,14 @@ func (a *app) login(ctx context.Context, _ *cli.Command) error {
 func (a *app) req(ctx context.Context, cmd *cli.Command) error {
 	const requiredArgsCount = 2
 	if cmd.NArg() != requiredArgsCount {
-		return cli.Exit("exactly 2 arguments required (HTTP method and path)", 1)
+		return ErrReqArgs
+	}
+
+	method := cmd.Args().Get(0)
+	path := cmd.Args().Get(1)
+
+	if method == "" {
+		return ErrReqMethod
 	}
 
 	gateway, err := a.initGateway(a.config)
@@ -198,24 +233,35 @@ func (a *app) req(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	method := cmd.Args().Get(0)
-	path := cmd.Args().Get(1)
-	loginFirst := cmd.Bool("login")
+	if a.config.DryRun {
+		pterm.Info.Printfln("Dry run - would send %s %s request", method, path)
 
-	if loginFirst {
-		if err := gateway.Login(ctx); err != nil {
-			return fmt.Errorf("login failed: %w", err)
+		return nil
+	}
+
+	if cmd.Bool("login") {
+		if err := runWithFeedback(
+			ctx,
+			a.newSpinner,
+			"Logging in...",
+			gateway.Login,
+			"Successfully logged in",
+		); err != nil {
+			return err
 		}
 	}
 
-	result, err := gateway.Request(ctx, method, path)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
+	_, err = fetchWithFeedback(
+		ctx,
+		a.newSpinner,
+		fmt.Sprintf("%s %s...", method, path),
+		func(ctx context.Context) (*tmhi.InfoResult, error) {
+			return gateway.Request(ctx, method, path)
+		},
+		displayInfoResult,
+	)
 
-	displayInfoResult(result)
-
-	return nil
+	return err
 }
 
 func (a *app) info(ctx context.Context, _ *cli.Command) error {
@@ -283,6 +329,7 @@ func (a *app) reboot(ctx context.Context, cmd *cli.Command) error {
 
 	if !cmd.Bool(ConfigAutoConfirm) {
 		confirmed, confirmErr := a.confirm(
+			ctx,
 			"Are you sure you want to reboot the gateway?",
 			false,
 		)
