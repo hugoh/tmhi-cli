@@ -200,6 +200,13 @@ func (a *app) req(ctx context.Context, cmd *cli.Command) error {
 
 	method := cmd.Args().Get(0)
 	path := cmd.Args().Get(1)
+
+	if a.config.DryRun {
+		pterm.Info.Printfln("Dry run - would send %s %s request", method, path)
+
+		return nil
+	}
+
 	loginFirst := cmd.Bool("login")
 
 	if loginFirst {

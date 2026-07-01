@@ -284,6 +284,25 @@ func TestReq_Command(t *testing.T) {
 		assert.Contains(t, err.Error(), "exactly 2 arguments required")
 	})
 
+	t.Run("dry-run does not perform the request", func(t *testing.T) {
+		mg := &mockGateway{}
+		a := newTestApp(mg)
+		a.config = &Config{DryRun: true}
+
+		reqCmd := &cli.Command{
+			Name:   cmdReq,
+			Action: a.req,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{Name: cmdLogin, Value: false},
+			},
+		}
+
+		err := reqCmd.Run(t.Context(), []string{cmdReq, testReqMethod, testReqPath})
+		require.NoError(t, err)
+		assert.False(t, mg.requestCalled, "request should be skipped in dry-run mode")
+		assert.False(t, mg.loginCalled, "login should be skipped in dry-run mode")
+	})
+
 	t.Run("performs request", func(t *testing.T) {
 		mg := &mockGateway{}
 		a := newTestApp(mg)
