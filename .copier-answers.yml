@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: 7e56587
+_commit: b341f90
 _src_path: gh:hugoh/go-tools
 codecov_ignore:
 - main.go
@@ -19,6 +19,7 @@ golangci_test_exclude_linters:
 - err113
 - funlen
 - varnamelen
+goreleaser_before_hooks: []
 goreleaser_version_pkg: main
 has_fuzz: false
 has_gen: false
@@ -28,6 +29,7 @@ has_test_int: true
 hk_has_golangci_step: true
 hk_has_goreleaser_step: false
 hk_prepush_with_go_ci: false
+nfpm_extra_contents: []
 project_description: CLI for managing T-Mobile Home Internet gateway and signal monitoring
 project_name: tmhi-cli
 test_int_cmd: test ! -d internal || gotestsum -- -race -tags=integration ./internal/...
