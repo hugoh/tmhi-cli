@@ -1,11 +1,10 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: b341f90
+_commit: bc7c629
 _src_path: gh:hugoh/go-tools
 codecov_ignore:
 - main.go
 codecov_style: simple
-cog_omit_type: ''
-coverage_backends_override: false
+cog_omit_types: []
 coverage_total: 80
 dev_watch: false
 dprint_has_excludes: true
@@ -35,4 +34,5 @@ project_name: tmhi-cli
 test_int_cmd: test ! -d internal || gotestsum -- -race -tags=integration ./internal/...
 testcoverage_excludes:
 - main\.go$
+testcoverage_overrides: []
 
