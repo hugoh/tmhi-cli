@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: bc7c629
+_commit: v1.0.0
 _src_path: gh:hugoh/go-tools
 codecov_ignore:
 - main.go
@@ -35,3 +35,4 @@ test_int_cmd: test ! -d internal || gotestsum -- -race -tags=integration ./inter
 testcoverage_excludes:
 - main\.go$
 testcoverage_overrides: []
+
