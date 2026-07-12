@@ -1,12 +1,11 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v1.5.2
+_commit: v1.9.0
 _src_path: https://github.com/hugoh/go-tools.git
 codecov_ignore:
 - main.go
 codecov_style: simple
 cog_omit_types: []
 coverage_total: 80
-dev_watch: false
 golangci_extra_disable:
 - depguard
 - exhaustruct
@@ -19,6 +18,7 @@ golangci_test_exclude_linters:
 - varnamelen
 goreleaser_before_hooks: []
 goreleaser_version_pkg: main
+has_executable: true
 has_fuzz: false
 has_gen: false
 has_goreleaser: true
@@ -35,5 +35,3 @@ testcoverage_excludes:
 - main\.go$
 testcoverage_overrides: []
 
-
-#copier updated
