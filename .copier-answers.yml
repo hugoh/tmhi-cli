@@ -2,16 +2,11 @@
 _commit: v1.16.5
 _src_path: https://github.com/hugoh/go-tools.git
 coverage_total: 80
-golangci_extra_disable:
-- depguard
-- exhaustruct
-- testpackage
+golangci_extra_disable: []
 golangci_extra_exclusions: []
 golangci_settings: ''
 golangci_test_exclude_linters:
-- err113
 - funlen
-- varnamelen
 goreleaser_before_hooks: []
 goreleaser_version_pkg: main
 has_executable: true
