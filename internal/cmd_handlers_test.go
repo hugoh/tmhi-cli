@@ -262,7 +262,7 @@ func TestReboot_ConfirmationDefaultsToNo(t *testing.T) {
 	})
 }
 
-func testRebootConfirm(t *testing.T, confirmResult bool, expectCalled bool, msg string) {
+func testRebootConfirm(t *testing.T, confirmResult, expectCalled bool, msg string) {
 	t.Helper()
 
 	mg := &mockGateway{}
