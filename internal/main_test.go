@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	tmhi "github.com/hugoh/tmhi-gateway/v2"
+	tmhi "github.com/hugoh/tmhi-gateway/v3"
 	"go.uber.org/goleak"
 )
 
