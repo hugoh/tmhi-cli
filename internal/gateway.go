@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	tmhi "github.com/hugoh/tmhi-gateway/v2"
+	tmhi "github.com/hugoh/tmhi-gateway/v3"
 )
 
 var errUnknownGateway = errors.New("unknown gateway")

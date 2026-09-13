@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	tmhi "github.com/hugoh/tmhi-gateway/v2"
+	tmhi "github.com/hugoh/tmhi-gateway/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"

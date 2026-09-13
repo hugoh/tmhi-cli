@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	tmhi "github.com/hugoh/tmhi-gateway/v2"
+	tmhi "github.com/hugoh/tmhi-gateway/v3"
 	"github.com/pterm/pterm"
 	"github.com/stretchr/testify/assert"
 )
