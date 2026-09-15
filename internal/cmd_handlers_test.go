@@ -33,7 +33,7 @@ type mockGateway struct {
 	signalErr     error
 }
 
-func (m *mockGateway) Close() error {
+func (*mockGateway) Close() error {
 	return nil
 }
 
