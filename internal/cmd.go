@@ -292,7 +292,9 @@ func (a *app) status(ctx context.Context, _ *cli.Command) error {
 		ctx,
 		a.newSpinner,
 		"Checking gateway status...",
-		gateway.Status,
+		func(ctx context.Context) (*tmhi.StatusResult, error) {
+			return gateway.Status(ctx), nil
+		},
 		displayStatusResult,
 	)
 
