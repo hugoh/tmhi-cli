@@ -33,6 +33,10 @@ type mockGateway struct {
 	signalErr     error
 }
 
+func (m *mockGateway) Close() error {
+	return nil
+}
+
 func (m *mockGateway) Login(context.Context) error {
 	m.loginCalled = true
 
@@ -63,13 +67,13 @@ func (m *mockGateway) Info(context.Context) (*tmhi.InfoResult, error) {
 	return &tmhi.InfoResult{}, nil
 }
 
-func (m *mockGateway) Status(context.Context) (*tmhi.StatusResult, error) {
+func (m *mockGateway) Status(context.Context) *tmhi.StatusResult {
 	m.statusCalled = true
 	if m.statusErr != nil {
-		return nil, m.statusErr
+		return &tmhi.StatusResult{Error: m.statusErr}
 	}
 
-	return &tmhi.StatusResult{WebInterfaceUp: true}, nil
+	return &tmhi.StatusResult{WebInterfaceUp: true}
 }
 
 func (m *mockGateway) Signal(context.Context) (*tmhi.SignalResult, error) {
@@ -135,15 +139,6 @@ func TestHandlerSuccessAndFailure(t *testing.T) {
 			errChecks: []string{"Fetching gateway info", "info boom"},
 		},
 		{
-			name:    cmdStatus,
-			handler: func(a *app) cli.ActionFunc { return a.status },
-			called:  func(mg *mockGateway) bool { return mg.statusCalled },
-			setupFail: func(mg *mockGateway) {
-				mg.statusErr = errors.New("status boom")
-			},
-			errChecks: []string{"Checking gateway status..."},
-		},
-		{
 			name:    cmdSignal,
 			handler: func(a *app) cli.ActionFunc { return a.signal },
 			called:  func(mg *mockGateway) bool { return mg.signalCalled },
@@ -180,6 +175,15 @@ func TestHandlerSuccessAndFailure(t *testing.T) {
 			assert.True(t, tt.called(mg))
 		})
 	}
+}
+
+func TestStatus_GatewayErrorSurfacesInResultNotReturnError(t *testing.T) {
+	mg := &mockGateway{statusErr: errors.New("status boom")}
+	a := newTestApp(mg)
+
+	err := a.status(t.Context(), nil)
+	require.NoError(t, err)
+	assert.True(t, mg.statusCalled)
 }
 
 func TestReboot_DryRunFlagAndFailure(t *testing.T) {
