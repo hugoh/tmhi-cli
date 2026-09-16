@@ -33,9 +33,7 @@ type mockGateway struct {
 	signalErr     error
 }
 
-func (*mockGateway) Close() error {
-	return nil
-}
+func (*mockGateway) Close() {}
 
 func (m *mockGateway) Login(context.Context) error {
 	m.loginCalled = true
