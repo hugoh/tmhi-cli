@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.4.1
 	github.com/hugoh/cellular-signal/v2 v2.0.3
-	github.com/hugoh/tmhi-gateway/v3 v3.1.1
+	github.com/hugoh/tmhi-gateway/v3 v3.2.0
 	github.com/muesli/termenv v0.16.0
 	github.com/pterm/pterm v0.12.83
 	github.com/stretchr/testify v1.12.1
@@ -34,8 +34,6 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v1.2.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	resty.dev/v3 v3.0.0-rc.4 // indirect
 )
