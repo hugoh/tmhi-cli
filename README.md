@@ -1,7 +1,5 @@
 # tmhi-cli - CLI to control T-Mobile Home Internet gateway
 
-[![CI](https://github.com/hugoh/tmhi-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/hugoh/tmhi-cli/actions/workflows/ci.yml)
-
 ## Usage
 
 ```text
