@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v1.24.7
+_commit: v1.26.25
 _src_path: https://github.com/hugoh/go-tools.git
 coverage_total: 80
 golangci_extra_disable: []
@@ -17,6 +17,7 @@ has_homebrew_cask: true
 has_pages: false
 has_test_int: true
 nfpm_extra_contents: []
+package_format: nfpm
 project_description: CLI for managing T-Mobile Home Internet gateway and signal monitoring
 project_name: tmhi-cli
 test_int_cmd: test ! -d internal || gotestsum -- -race -tags=integration ./internal/...
