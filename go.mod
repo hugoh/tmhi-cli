@@ -4,17 +4,17 @@ go 1.26.0
 
 require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.4.1
-	github.com/hugoh/cellular-signal/v2 v2.0.3
-	github.com/hugoh/tmhi-gateway/v3 v3.2.0
+	github.com/hugoh/cellular-signal/v2 v2.0.4
+	github.com/hugoh/tmhi-gateway/v3 v3.2.1
 	github.com/muesli/termenv v0.16.0
 	github.com/pterm/pterm v0.12.83
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli-altsrc/v3 v3.1.0
 	github.com/urfave/cli-validation v0.0.0-20230629031421-92802a7fd6e9
-	github.com/urfave/cli/v3 v3.13.0
+	github.com/urfave/cli/v3 v3.14.0
 	github.com/zenizh/go-capturer v0.0.0-20211219060012-52ea6c8fed04
 	go.uber.org/goleak v1.3.0
-	golang.org/x/term v0.46.0
+	golang.org/x/term v0.47.0
 )
 
 require (
@@ -34,6 +34,6 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v1.2.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 )
