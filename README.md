@@ -2,14 +2,7 @@
 
 ## Install
 
-### Debian/Ubuntu (apt)
-
-```sh
-curl -1sLf 'https://dl.cloudsmith.io/public/hugoh/apt/setup.deb.sh' | sudo -E bash
-sudo apt install tmhi-cli
-```
-
-Package repository hosting is graciously provided by [Cloudsmith](https://cloudsmith.com).
+See [INSTALL.md](INSTALL.md) for installation instructions.
 
 ## Usage
 
