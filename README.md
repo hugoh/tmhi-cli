@@ -1,5 +1,16 @@
 # tmhi-cli - CLI to control T-Mobile Home Internet gateway
 
+## Install
+
+### Debian/Ubuntu (apt)
+
+```sh
+curl -1sLf 'https://dl.cloudsmith.io/public/hugoh/apt/setup.deb.sh' | sudo -E bash
+sudo apt install tmhi-cli
+```
+
+Package repository hosting is graciously provided by [Cloudsmith](https://cloudsmith.com).
+
 ## Usage
 
 ```text
