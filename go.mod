@@ -3,7 +3,7 @@ module github.com/hugoh/tmhi-cli
 go 1.26.0
 
 require (
-	github.com/go-ozzo/ozzo-validation/v4 v4.4.1
+	github.com/go-ozzo/ozzo-validation/v4 v4.5.0
 	github.com/hugoh/cellular-signal/v2 v2.0.4
 	github.com/hugoh/tmhi-gateway/v3 v3.2.1
 	github.com/muesli/termenv v0.16.0
