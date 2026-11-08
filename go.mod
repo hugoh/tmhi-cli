@@ -1,11 +1,11 @@
 module github.com/hugoh/tmhi-cli
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.5.0
 	github.com/hugoh/cellular-signal/v2 v2.0.4
-	github.com/hugoh/tmhi-gateway/v3 v3.2.1
+	github.com/hugoh/tmhi-gateway/v3 v3.2.2
 	github.com/muesli/termenv v0.16.0
 	github.com/pterm/pterm v0.12.84
 	github.com/stretchr/testify v1.12.1
