@@ -24,8 +24,8 @@ github.com/go-ozzo/ozzo-validation/v4 v4.5.0 h1:ay87N+5vSsdBVMtEAUtP76cJL/I6Yjmh
 github.com/go-ozzo/ozzo-validation/v4 v4.5.0/go.mod h1:zGDObjgC33S3GGdAiAVanGqqA3MH5HdlxH9wPeCL88E=
 github.com/hugoh/cellular-signal/v2 v2.0.4 h1:1KLbIxI3kAif/B5VsKiu4ghqRvYg06VHV35Rbf+tgss=
 github.com/hugoh/cellular-signal/v2 v2.0.4/go.mod h1:DPKMaNLvmnfda5i3Y7CKHUFuAOE0i/l5f8n3xHWIHEU=
-github.com/hugoh/tmhi-gateway/v3 v3.2.1 h1:5kWwrw1CuodP2HcHTZbUI+jTyExuUQddwq74yrp4bBU=
-github.com/hugoh/tmhi-gateway/v3 v3.2.1/go.mod h1:DTZa9X7TOgXd0F+gjr198h4HMdqFvzasmXaURqoAQzo=
+github.com/hugoh/tmhi-gateway/v3 v3.2.2 h1:ysAvfNUbGpUItSiRA+QBeN/9STlul/NLNTPoGJ69qOg=
+github.com/hugoh/tmhi-gateway/v3 v3.2.2/go.mod h1:uEXunuvQ95KpdgV3/ORhZw+WNNCMSfuaEBO4iY/xZnE=
 github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
 github.com/lithammer/fuzzysearch v1.1.8 h1:/HIuJnjHuXS8bKaiTMeeDlW2/AyIWk2brx1V8LFgLN4=
